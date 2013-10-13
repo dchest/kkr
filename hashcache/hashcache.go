@@ -18,12 +18,9 @@ const (
 
 type Cache struct {
 	sync.Mutex
-	m map[string][hashSize]byte
-	h hash.Hash
-}
-
-func New() *Cache {
-	return &Cache{m: make(map[string][hashSize]byte), h: md5.New()}
+	filename string
+	m        map[string][hashSize]byte
+	h        hash.Hash
 }
 
 // contenHash returns hash of content. Cache must be locked.
@@ -48,31 +45,35 @@ func (c *Cache) Seen(path string, content []byte) bool {
 	return true
 }
 
-func (c *Cache) WriteToFile(filename string) (err error) {
-	f, err := os.Create(filename)
+func (c *Cache) Save() error {
+	f, err := os.Create(c.filename)
 	if err != nil {
-		return
+		return err
 	}
-	defer func() {
-		f.Close()
-		if err != nil {
-			// Delete file.
-			os.Remove(filename)
-		}
-	}()
-	return gob.NewEncoder(f).Encode(c.m)
+	defer f.Close()
+	if err := gob.NewEncoder(f).Encode(c.m); err != nil {
+		// Delete file.
+		os.Remove(c.filename)
+		return err
+	}
+	return nil
 }
 
-func NewFromFile(filename string) (c *Cache, err error) {
+func New(filename string) (c *Cache, err error) {
+	c = &Cache{
+		filename: filename,
+		m:        make(map[string][hashSize]byte),
+		h:        md5.New(),
+	}
 	f, err := os.Open(filename)
+	if err != nil && os.IsNotExist(err) {
+		// No file, so create new empty cache.
+		return c, nil
+	}
 	if err != nil {
 		return
 	}
 	defer f.Close()
-	m := make(map[string][hashSize]byte)
-	err = gob.NewDecoder(f).Decode(&m)
-	if err != nil {
-		return
-	}
-	return &Cache{m: m, h: md5.New()}, nil
+	err = gob.NewDecoder(f).Decode(&c.m)
+	return
 }

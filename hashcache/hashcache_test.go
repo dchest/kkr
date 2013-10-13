@@ -22,7 +22,11 @@ func TestSeen(t *testing.T) {
 	content0 := []byte("some content to hash")
 	content1 := []byte("some other content")
 
-	c := New()
+	filename := randomFilename()
+	c, err := New(filename)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
 	res := c.Seen(path0, content0)
 	if res {
 		t.Errorf("0/0 update returned true, expected false")
@@ -45,15 +49,13 @@ func TestSeen(t *testing.T) {
 	}
 
 	// Write to file.
-	filename := randomFilename()
-
-	if err := c.WriteToFile(filename); err != nil {
+	if err := c.Save(); err != nil {
 		t.Errorf(err.Error())
 	}
 	defer os.Remove(filename)
 
 	// Read and check.
-	nc, err := NewFromFile(filename)
+	nc, err := New(filename)
 	if err != nil {
 		t.Errorf(err.Error())
 		return
@@ -73,7 +75,7 @@ func TestSeen(t *testing.T) {
 }
 
 func BenchmarkSeen(b *testing.B) {
-	c := New()
+	c, _ := New("")
 	b.ResetTimer()
 	path := "path"
 	content := make([]byte, 128)
@@ -83,7 +85,7 @@ func BenchmarkSeen(b *testing.B) {
 }
 
 func BenchmarkSeen6(b *testing.B) {
-	c := New()
+	c, _ := New("")
 	path0 := "some/kinda/long/path_to_file.txt"
 	path1 := "other/path"
 	content0 := make([]byte, 1024)
