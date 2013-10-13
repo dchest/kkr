@@ -9,8 +9,6 @@ import (
 	"os"
 	"io"
 	"path/filepath"
-
-	"github.com/dchest/kukuruz/page"
 )
 
 const (
@@ -82,7 +80,7 @@ func renderPages(basedir string) error {
 		}
 		if isPage(relname) {
 			// Render templated page.
-			p, err := page.LoadPage(indir, relname)
+			p, err := LoadPage(indir, relname)
 			if err != nil {
 				return err
 			}
@@ -121,7 +119,7 @@ func renderPosts(basedir string) error {
 			return nil
 		}
 		// Render templated page.
-		p, err := page.LoadPost(indir, relname)
+		p, err := LoadPost(indir, relname)
 		if err != nil {
 			return err
 		}
