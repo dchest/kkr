@@ -434,7 +434,7 @@ func main() {
 		build(wd)
 		serve(wd)
 	default:
-		log.Printf("! unknown command %s", flag.Arg(0))
+		log.Printf("! unknown command %s", command)
 		flag.Usage()
 	}
 	if watcher != nil {
