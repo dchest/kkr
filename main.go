@@ -83,8 +83,22 @@ func loadSiteConfig(basedir string) error {
 		switch fs := fv.(type) {
 		case map[interface{}]interface{}:
 			for k, v := range fs {
-				if err := filters.RegisterExt(k.(string), v.(string)); err != nil {
-					return err
+				ext := k.(string)
+				switch name := v.(type) {
+				case string:
+					if err := filters.RegisterExt(ext, name, nil); err != nil {
+						return err
+					}
+				case []interface{}:
+					args := make([]string, len(name))
+					for i, a := range name {
+						args[i] = a.(string)
+					}
+					if err := filters.RegisterExt(ext, args[0], args[1:]); err != nil {
+						return err
+					}
+				default:
+					return fmt.Errorf("unknown filter format type")
 				}
 			}
 		default:

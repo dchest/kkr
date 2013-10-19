@@ -9,25 +9,15 @@ type Filter interface {
 	Filter(string) (string, error)
 }
 
+type FilterMaker func([]string) Filter
+
 var (
-	filtersByName = make(map[string]Filter)
-	filtersByExt  = make(map[string]Filter)
+	filterMakersByName = make(map[string]FilterMaker)
+	filtersByExt       = make(map[string]Filter)
 )
 
-func Register(f Filter) {
-	filtersByName[f.Name()] = f
-}
-
-func FilterText(filterName string, text string) (out string, err error) {
-	f, ok := filtersByName[filterName]
-	if !ok {
-		return text, fmt.Errorf("filter %q not found", filterName)
-	}
-	return f.Filter(text)
-}
-
-func RegisterExt(ext, filterName string) error {
-	f, ok := filtersByName[filterName]
+func RegisterExt(ext, filterName string, args []string) error {
+	fm, ok := filterMakersByName[filterName]
 	if !ok {
 		return fmt.Errorf("filter %q not found", filterName)
 	}
@@ -35,7 +25,7 @@ func RegisterExt(ext, filterName string) error {
 	if ext[0] != '.' {
 		ext = "." + ext
 	}
-	filtersByExt[ext] = f
+	filtersByExt[ext] = fm(args)
 	return nil
 }
 
@@ -50,14 +40,6 @@ func FilterTextByExt(ext string, text string) (out string, filterName string, er
 	return
 }
 
-type filterFromFunc struct {
-	name   string
-	filter func(string) (string, error)
-}
-
-func (f *filterFromFunc) Name() string                    { return f.name }
-func (f *filterFromFunc) Filter(s string) (string, error) { return f.filter(s) }
-
-func RegisterFunc(name string, fn func(string) (string, error)) {
-	Register(&filterFromFunc{name, fn})
+func RegisterMaker(filterName string, fn func([]string) Filter) {
+	filterMakersByName[filterName] = fn
 }
