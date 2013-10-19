@@ -21,6 +21,8 @@ type Layout struct {
 }
 
 var layouts = make(map[string]*Layout)
+
+// Functions used in templates.
 var funcMap = template.FuncMap{
 	// xml escapes XML.
 	"xml": func(s string) (string, error) {
