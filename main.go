@@ -1,14 +1,17 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
 	"time"
 
+	"github.com/dchest/fsnotify"
 	"github.com/dchest/goyaml"
 
 	"github.com/dchest/kkr/filters"
@@ -279,18 +282,12 @@ func isDirExist(path string) bool {
 	return fi.IsDir()
 }
 
-func main() {
-	log.SetFlags(0)
-	wd, err := os.Getwd()
+func build(wd string) {
+	startTime := time.Now()
+
+	log.Println("* Building:")
+	err := loadLayouts(wd)
 	if err != nil {
-		log.Fatalf("! os.Getwd(): %s", err)
-	}
-
-	if err := loadSiteConfig(wd); err != nil {
-		log.Fatalf("! Cannot load site config: %s", err)
-	}
-
-	if err := loadLayouts(wd); err != nil {
 		log.Fatalf("! Cannot load layouts: %s", err)
 	}
 
@@ -324,5 +321,112 @@ func main() {
 	// Save hashcache.
 	if err := hcache.Save(); err != nil {
 		log.Fatalf("! Cannot save hashcache")
+	}
+
+	log.Printf("* Done in %s\n", time.Now().Sub(startTime))
+}
+
+func serve(wd string) {
+	outdir := filepath.Join(wd, outDirName)
+	log.Printf("Serving at %s. Press Ctrl+C to quit.\n", *fHttp)
+	log.Fatal(http.ListenAndServe(*fHttp, http.FileServer(http.Dir(outdir))))
+}
+
+func startWatcher(wd string) *fsnotify.Watcher {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	go func(basedir string) {
+		for {
+			select {
+			case ev := <-watcher.Event:
+				log.Println("W event:", ev)
+				build(basedir)
+			case err := <-watcher.Error:
+				log.Println("! Watcher error:", err)
+			}
+		}
+	}(wd)
+
+	watchedPaths := []string{
+		layoutsDirName,
+		pagesDirName,
+		postsDirName,
+	}
+
+	for _, dir := range watchedPaths {
+		err = watcher.Watch(filepath.Join(wd, dir))
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
+
+	log.Printf("* Watching for changes.")
+	return watcher
+}
+
+var (
+	fHttp  = flag.String("http", "0.0.0.0:8080", "address and port to use for serving")
+	fWatch = flag.Bool("watch", false, "watch for changes")
+)
+
+var Usage = func() {
+	fmt.Printf(`usage: kkr command
+
+Commands:
+  build  - build website
+  serve  - start a web server
+
+Options:
+
+`)
+	flag.PrintDefaults()
+}
+
+func main() {
+	log.SetFlags(0)
+	flag.Usage = Usage
+
+	var command string
+
+	if len(os.Args) < 2 {
+		flag.Usage()
+		return
+	}
+	command = os.Args[1]
+	os.Args = os.Args[1:]
+
+	flag.Parse()
+
+	wd, err := os.Getwd()
+	if err != nil {
+		log.Fatalf("! os.Getwd(): %s", err)
+	}
+	if err := loadSiteConfig(wd); err != nil {
+		log.Fatalf("! Cannot load site config: %s", err)
+	}
+
+	var watcher *fsnotify.Watcher
+	if *fWatch {
+		watcher = startWatcher(wd)
+	}
+
+	switch command {
+	case "build":
+		build(wd)
+		if watcher != nil {
+			select {}
+		}
+	case "serve":
+		build(wd)
+		serve(wd)
+	default:
+		log.Printf("! unknown command %s", flag.Arg(0))
+		flag.Usage()
+	}
+	if watcher != nil {
+		watcher.Close()
 	}
 }
