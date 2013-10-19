@@ -3,6 +3,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"path"
 	"path/filepath"
@@ -33,6 +34,18 @@ func LoadPost(basedir, filename, outNameTemplate string) (p *Post, err error) {
 	date, err := time.Parse("2006-01-02", basefile[0:len("2006-01-02")])
 	if err != nil {
 		return
+	}
+	// Now try getting date from meta.
+	if md, ok := page.Meta["date"]; ok {
+		switch d := md.(type) {
+		case string:
+			date, err = parseAnyDate(d)
+			if err != nil {
+				return nil, err
+			}
+		default:
+			return nil, errors.New("'date' is not string")
+		}
 	}
 
 	// Fill out name template.
