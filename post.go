@@ -90,7 +90,7 @@ func (pp Posts) From(n int) Posts {
 }
 
 func (pp Posts) Len() int           { return len(pp) }
-func (pp Posts) Less(i, j int) bool { return pp[i].Date.Before(pp[j].Date) }
+func (pp Posts) Less(i, j int) bool { return pp[i].Date.After(pp[j].Date) }
 func (pp Posts) Swap(i, j int)      { pp[i], pp[j] = pp[j], pp[i] }
 
 func (pp Posts) Sort() {
