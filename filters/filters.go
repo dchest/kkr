@@ -29,6 +29,11 @@ func RegisterExt(ext, filterName string, args []string) error {
 	return nil
 }
 
+func HasFilterForExt(ext string) bool {
+	_ ok := filtersByExt[ext]
+	return ok
+}
+
 func FilterTextByExt(ext string, text string) (out string, filterName string, err error) {
 	f, ok := filtersByExt[ext]
 	if !ok {
