@@ -4,26 +4,37 @@ package main
 
 import (
 	"fmt"
-	"html/template"
+	"io"
+	"io/ioutil"
 	"log"
 	"os"
-	"io"
 	"path/filepath"
+	"time"
+
+	"github.com/dchest/goyaml"
+	"github.com/dchest/kkr/layout"
 )
 
 const (
-	templatesDirName = "_templates"
-	pagesDirName = "_pages"
-	postsDirName = "_posts"
-	outDirName = "_out"
-	postsOutDirName = "blog"
+	layoutsDirName = "_layouts"
+	pagesDirName   = "_pages"
+	postsDirName   = "_posts"
+	outDirName     = "_out"
+	siteFileName   = "_config.yml"
+
+	defaultPermalink = "blog/:year/:month/:day/:name/"
+
+	defaultPageLayout = "default"
+	defaultPostLayout = "post"
 )
 
-var pageExtentions = []string{".html", ".htm"}
+var site map[string]interface{}
 
-func isPage(filename string) bool {
+var postExtensions = []string{".html", ".htm", ".md", ".markdown"}
+
+func isPostFileName(filename string) bool {
 	ext := filepath.Ext(filename)
-	for _, v := range(pageExtentions) {
+	for _, v := range postExtensions {
 		if v == ext {
 			return true
 		}
@@ -31,11 +42,40 @@ func isPage(filename string) bool {
 	return false
 }
 
-var templates *template.Template
+// isIgnoredFile returns true if filename should be ignored
+// when reading posts and pages.
+func isIgnoredFile(filename string) bool {
+	if filename[len(filename)-1] == '~' {
+		return true
+	}
+	return false
+}
 
-func loadTemplates(basedir string) (err error) {
-	templates, err = template.ParseGlob(filepath.Join(basedir, templatesDirName, "*"))
-	return
+func loadLayouts(basedir string) error {
+	return layout.AddDir(filepath.Join(basedir, layoutsDirName))
+}
+
+func loadSiteConfig(basedir string) error {
+	// Fill in default values.
+	//TODO move more defaults from contants to here.
+	site = make(map[string]interface{})
+	site["permalink"] = defaultPermalink
+	site["date"] = time.Now()
+
+	// Read config file.
+	b, err := ioutil.ReadFile(filepath.Join(basedir, siteFileName))
+	if err != nil {
+		return err
+	}
+	if err := goyaml.Unmarshal(b, &site); err != nil {
+		return err
+	}
+
+	// Some cleanup.
+	if url, ok := site["url"]; ok {
+		site["url"] = cleanSiteURL(url.(string))
+	}
+	return nil
 }
 
 func copyFile(basedir string, filename string) error {
@@ -44,6 +84,19 @@ func copyFile(basedir string, filename string) error {
 	if err := os.MkdirAll(filepath.Join(outdir, filepath.Dir(filename)), 0755); err != nil {
 		return err
 	}
+	infile := filepath.Join(indir, filename)
+	outfile := filepath.Join(outdir, filename)
+
+	// Remove old outfile, ignoring errors.
+	os.Remove(outfile)
+
+	// Try making hard link instead of copying.
+	if err := os.Link(infile, outfile); err == nil {
+		// Succeeded.
+		return nil
+	}
+
+	// Failed to create hard link, so try copying content.
 	in, err := os.Open(filepath.Join(indir, filename))
 	if err != nil {
 		return err
@@ -75,33 +128,42 @@ func renderPages(basedir string) error {
 		if fi.IsDir() {
 			return nil // TODO(dchest): create directories?
 		}
-		if relname[len(relname)-1] == '~' {
-			return nil // skip temporary files
+		if isIgnoredFile(relname) {
+			return nil // skip ignored files
 		}
-		if isPage(relname) {
-			// Render templated page.
-			p, err := LoadPage(indir, relname)
-			if err != nil {
-				return err
-			}
-			fmt.Printf("P %s → %s\n", relname, filepath.Join(outdir, p.Filename))
-			if err := p.Render(outdir, templates); err != nil {
-				return err
-			}
-		} else {
+		p, err := LoadPage(indir, relname)
+		if err != nil && IsNotPage(err) {
+			// Not a page, copy file.
 			fmt.Printf("C %s → %s\n", relname, filepath.Join(outdir, relname))
-			if err := copyFile(basedir, relname); err != nil {
-				return err
-			}
+			return copyFile(basedir, relname)
+		}
+		if err != nil {
+			return err
+		}
+		// Render templated page.
+		fmt.Printf("P %s → %s\n", relname, filepath.Join(outDirName, p.Filename))
+		l, err := layout.New("", defaultPageLayout, p.Meta, p.Content)
+		if err != nil {
+			return err
+		}
+		rendered, err := l.Render(site, p.Meta, "")
+		if err != nil {
+			return err
+		}
+		if err := os.MkdirAll(filepath.Join(outdir, filepath.Dir(p.Filename)), 0755); err != nil {
+			return err
+		}
+		if err := ioutil.WriteFile(filepath.Join(outdir, p.Filename), []byte(rendered), 0644); err != nil {
+			return err
 		}
 		return nil
 	})
 }
 
-func renderPosts(basedir string) error {
+func loadPosts(basedir string) error {
 	indir := filepath.Join(basedir, postsDirName)
-	outdir := filepath.Join(basedir, outDirName, postsOutDirName)
-	return filepath.Walk(indir, func(path string, fi os.FileInfo, err error) error {
+	posts := make(Posts, 0)
+	err := filepath.Walk(indir, func(path string, fi os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -112,23 +174,53 @@ func renderPosts(basedir string) error {
 		if fi.IsDir() {
 			return nil // TODO(dchest): create directories?
 		}
-		if relname[len(relname)-1] == '~' {
-			return nil // skip temporary files
+		if isIgnoredFile(relname) {
+			return nil // skip ignored files
 		}
-		if !isPage(relname) {
+		if !isPostFileName(relname) {
 			return nil
 		}
-		// Render templated page.
-		p, err := LoadPost(indir, relname)
+		p, err := LoadPost(indir, relname, site["permalink"].(string))
 		if err != nil {
 			return err
 		}
-		fmt.Printf("B %s → %s\n", relname, filepath.Join(outdir, p.Filename))
-		if err := p.Render(outdir, templates); err != nil {
-			return err
-		}
+		posts = append(posts, p)
+		fmt.Printf("B < %s\n", relname)
 		return nil
 	})
+	if err != nil {
+		return err
+	}
+	posts.Sort()
+	site["Posts"] = posts
+	return nil
+}
+
+func renderPosts(basedir string) error {
+	outdir := filepath.Join(basedir, outDirName)
+	posts, ok := site["Posts"]
+	if !ok || posts == nil {
+		return nil
+	}
+	for _, p := range posts.(Posts) {
+		// Render post.
+		fmt.Printf("B > %s\n", filepath.Join(outDirName, p.Filename))
+		l, err := layout.New("", defaultPostLayout, p.Meta, p.Content)
+		if err != nil {
+			return err
+		}
+		rendered, err := l.Render(site, p.Meta, "")
+		if err != nil {
+			return err
+		}
+		if err := os.MkdirAll(filepath.Join(outdir, filepath.Dir(p.Filename)), 0755); err != nil {
+			return err
+		}
+		if err := ioutil.WriteFile(filepath.Join(outdir, p.Filename), []byte(rendered), 0644); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func isDirExist(path string) bool {
@@ -140,28 +232,35 @@ func isDirExist(path string) bool {
 }
 
 func main() {
-	log.SetFlags(0);
+	log.SetFlags(0)
 	wd, err := os.Getwd()
 	if err != nil {
-		log.Fatalf("os.Getwd(): %s", err)
-	}
-	if err := loadTemplates(wd); err != nil {
-		log.Fatalf("cannot load templates: %s", err)
+		log.Fatalf("! os.Getwd(): %s", err)
 	}
 
-	if isDirExist(filepath.Join(wd, pagesDirName)) {
-		if err := renderPages(wd); err != nil {
-			log.Fatalf("cannot render page: %s", err)
-		}
-	} else {
-		log.Println("No pages to render.")
+	if err := loadSiteConfig(wd); err != nil {
+		log.Fatalf("! Cannot load site config: %s", err)
+	}
+
+	if err := loadLayouts(wd); err != nil {
+		log.Fatalf("! Cannot load layouts: %s", err)
 	}
 
 	if isDirExist(filepath.Join(wd, postsDirName)) {
+		if err := loadPosts(wd); err != nil {
+			log.Fatalf("! Cannot load posts: %s", err)
+		}
 		if err := renderPosts(wd); err != nil {
-			log.Fatalf("cannot render post: %s", err)
+			log.Fatalf("! Cannot render post: %s", err)
 		}
 	} else {
-		log.Println("No posts to render.")
+		log.Println("- No posts to render.")
+	}
+	if isDirExist(filepath.Join(wd, pagesDirName)) {
+		if err := renderPages(wd); err != nil {
+			log.Fatalf("! Cannot render page: %s", err)
+		}
+	} else {
+		log.Println("- No pages to render.")
 	}
 }

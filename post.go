@@ -3,11 +3,12 @@
 package main
 
 import (
-	"time"
-	"path/filepath"
-	"html/template"
 	"fmt"
-	"os"
+	"path"
+	"path/filepath"
+	"sort"
+	"strings"
+	"time"
 )
 
 type Post struct {
@@ -15,22 +16,16 @@ type Post struct {
 	Date time.Time
 }
 
-func LoadPost(basedir, filename string) (p *Post, err error) {
+func LoadPost(basedir, filename, outNameTemplate string) (p *Post, err error) {
 	page, err := LoadPage(basedir, filename)
 	if err != nil {
 		return
 	}
-	if page.Template == defaultPageTemplate {
-		page.Template = defaultPostTemplate
-	}
-	// Transform:
+	// Extract date from:
 	// 	/path/to/2006-01-02-postname.html
-	// to:
-	// 	/path/to/2006/01/02/postname/index.html
-	// and extract date.
-	basefile := filepath.Base(filename)
+	basefile := path.Base(filename)
 	// Remove extensions.
-	basefile = basefile[:len(basefile)-len(filepath.Ext(basefile))]
+	basefile = basefile[:len(basefile)-len(path.Ext(basefile))]
 	if len(basefile) < len("2006-01-02-") {
 		err = fmt.Errorf("wrong post filename format %q", basefile)
 		return
@@ -39,33 +34,54 @@ func LoadPost(basedir, filename string) (p *Post, err error) {
 	if err != nil {
 		return
 	}
-	page.Filename = filepath.Join(
-		filepath.Dir(filename), // /path/to/
-		basefile[0:4],		// 2006
-		basefile[5:7],		// 01
-		basefile[8:10],		// 02
-		basefile[11:],		// postname
-		"index.html",		// index.html
-	)
+
+	// Fill out name template.
+	replacements := map[string]string{
+		":year":  basefile[0:4],
+		":month": basefile[5:7],
+		":day":   basefile[8:10],
+		":name":  basefile[11:],
+	}
+	outname := outNameTemplate
+	for k, v := range replacements {
+		outname = strings.Replace(outname, k, v, -1)
+	}
+
+	url := cleanPermalink(outname)
+	// Add properies to meta
+	page.Meta["date"] = date
+	page.Meta["url"] = url
+	page.Meta["id"] = basefile
+
+	// Add index.html if ends with slash.
+	if outname[len(outname)-1] == '/' {
+		outname += "index.html"
+	}
+	page.Filename = filepath.FromSlash(outname)
+	page.URL = url
 	return &Post{
 		Page: *page,
 		Date: date,
 	}, nil
 }
 
+type Posts []*Post
 
-func (p *Post) Render(outdir string, templates *template.Template) error {
-	tpl := templates.Lookup(p.Template)
-	if tpl == nil {
-		return fmt.Errorf("post: template %q not found", p.Template)
+func (pp Posts) Limit(n int) Posts {
+	if n > len(pp) {
+		n = len(pp)
 	}
-	if err := os.MkdirAll(filepath.Join(outdir, filepath.Dir(p.Filename)), 0755); err != nil {
-		return err
-	}
-	f, err := os.Create(filepath.Join(outdir, p.Filename))
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	return tpl.Execute(f, p)
+	return pp[:n]
+}
+
+func (pp Posts) From(n int) Posts {
+	return pp[n:]
+}
+
+func (pp Posts) Len() int           { return len(pp) }
+func (pp Posts) Less(i, j int) bool { return pp[i].Date.Before(pp[j].Date) }
+func (pp Posts) Swap(i, j int)      { pp[i], pp[j] = pp[j], pp[i] }
+
+func (pp Posts) Sort() {
+	sort.Sort(pp)
 }
