@@ -379,7 +379,7 @@ func startWatcher(wd string) *fsnotify.Watcher {
 }
 
 var (
-	fHttp  = flag.String("http", "0.0.0.0:8080", "address and port to use for serving")
+	fHttp  = flag.String("http", "localhost:8080", "address and port to use for serving")
 	fWatch = flag.Bool("watch", false, "watch for changes")
 )
 
