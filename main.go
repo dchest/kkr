@@ -384,7 +384,7 @@ var (
 )
 
 var Usage = func() {
-	fmt.Printf(`usage: kkr command
+	fmt.Printf(`usage: kkr command [options]
 
 Commands:
   build  - build website
