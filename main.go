@@ -12,15 +12,17 @@ import (
 	"github.com/dchest/goyaml"
 
 	"github.com/dchest/kkr/filters"
+	"github.com/dchest/kkr/hashcache"
 	"github.com/dchest/kkr/layout"
 )
 
 const (
-	layoutsDirName = "_layouts"
-	pagesDirName   = "_pages"
-	postsDirName   = "_posts"
-	outDirName     = "_out"
-	siteFileName   = "_config.yml"
+	layoutsDirName    = "_layouts"
+	pagesDirName      = "_pages"
+	postsDirName      = "_posts"
+	outDirName        = "_out"
+	siteFileName      = "_config.yml"
+	hashCacheFileName = ".kkr-hashcache"
 
 	defaultPermalink = "blog/:year/:month/:day/:name/"
 
@@ -30,6 +32,7 @@ const (
 
 var site map[string]interface{}
 var siteFilters map[string]string
+var hcache *hashcache.Cache
 
 var postExtensions = []string{".html", ".htm", ".md", ".markdown"}
 
@@ -189,11 +192,16 @@ func renderPages(basedir string) error {
 		if filterName != "" {
 			fmt.Printf(" (F=%s)", filterName)
 		}
+		if hcache.Seen(filepath.Join(outDirName, p.Filename), filtered) {
+			fmt.Printf(" (unchanged)\n")
+			return nil
+		}
 		fmt.Println("")
-		if err := os.MkdirAll(filepath.Join(outdir, filepath.Dir(p.Filename)), 0755); err != nil {
+		outpath := filepath.Join(outdir, p.Filename)
+		if err := os.MkdirAll(filepath.Dir(outpath), 0755); err != nil {
 			return err
 		}
-		if err := ioutil.WriteFile(filepath.Join(outdir, p.Filename), []byte(filtered), 0644); err != nil {
+		if err := ioutil.WriteFile(outpath, []byte(filtered), 0644); err != nil {
 			return err
 		}
 		return nil
@@ -286,6 +294,13 @@ func main() {
 		log.Fatalf("! Cannot load layouts: %s", err)
 	}
 
+	// Load hashcache.
+	hcache, err = hashcache.Open(hashCacheFileName)
+	if err != nil {
+		log.Fatalf("! Cannot load or create hashcache, please delete %q", hashCacheFileName)
+	}
+
+	// Load and render posts.
 	if isDirExist(filepath.Join(wd, postsDirName)) {
 		if err := loadPosts(wd); err != nil {
 			log.Fatalf("! Cannot load posts: %s", err)
@@ -296,11 +311,18 @@ func main() {
 	} else {
 		log.Println("- No posts to render.")
 	}
+
+	// Render pages.
 	if isDirExist(filepath.Join(wd, pagesDirName)) {
 		if err := renderPages(wd); err != nil {
 			log.Fatalf("! Cannot render page: %s", err)
 		}
 	} else {
 		log.Println("- No pages to render.")
+	}
+
+	// Save hashcache.
+	if err := hcache.Save(); err != nil {
+		log.Fatalf("! Cannot save hashcache")
 	}
 }

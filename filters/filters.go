@@ -30,7 +30,7 @@ func RegisterExt(ext, filterName string, args []string) error {
 }
 
 func HasFilterForExt(ext string) bool {
-	_ ok := filtersByExt[ext]
+	_, ok := filtersByExt[ext]
 	return ok
 }
 

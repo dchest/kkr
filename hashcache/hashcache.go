@@ -5,6 +5,7 @@ import (
 	"crypto/md5"
 	"encoding/gob"
 	"hash"
+	"io"
 	"os"
 	"sync"
 )
@@ -24,16 +25,16 @@ type Cache struct {
 }
 
 // contenHash returns hash of content. Cache must be locked.
-func (c *Cache) contentHash(content []byte) (sum [hashSize]byte) {
+func (c *Cache) contentHash(content string) (sum [hashSize]byte) {
 	c.h.Reset()
-	c.h.Write(content)
+	io.WriteString(c.h, content)
 	c.h.Sum(sum[:0])
 	return
 }
 
 // Seen sets content hash for the given path to a new value.
 // It returns true if the content was already cached and had the same hash.
-func (c *Cache) Seen(path string, content []byte) bool {
+func (c *Cache) Seen(path, content string) bool {
 	c.Lock()
 	defer c.Unlock()
 	origHash, ok := c.m[path]
@@ -59,7 +60,7 @@ func (c *Cache) Save() error {
 	return nil
 }
 
-func New(filename string) (c *Cache, err error) {
+func Open(filename string) (c *Cache, err error) {
 	c = &Cache{
 		filename: filename,
 		m:        make(map[string][hashSize]byte),
