@@ -1,4 +1,3 @@
-// Copyright (C) 2012 Dmitry Chestnykh <dmitry@codingrobots.com>
 package main
 
 import (

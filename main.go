@@ -1,5 +1,3 @@
-// Copyright (C) 2012 Dmitry Chestnykh <dmitry@codingrobots.com>
-// License: GPL 3
 package main
 
 import (
@@ -12,6 +10,8 @@ import (
 	"time"
 
 	"github.com/dchest/goyaml"
+
+	"github.com/dchest/kkr/filters"
 	"github.com/dchest/kkr/layout"
 )
 
@@ -29,6 +29,7 @@ const (
 )
 
 var site map[string]interface{}
+var siteFilters map[string]string
 
 var postExtensions = []string{".html", ".htm", ".md", ".markdown"}
 
@@ -75,6 +76,21 @@ func loadSiteConfig(basedir string) error {
 	if url, ok := site["url"]; ok {
 		site["url"] = cleanSiteURL(url.(string))
 	}
+
+	// Register filters.
+	fv, ok := site["filters"]
+	if ok {
+		switch fs := fv.(type) {
+		case map[interface{}]interface{}:
+			for k, v := range fs {
+				if err := filters.RegisterExt(k.(string), v.(string)); err != nil {
+					return err
+				}
+			}
+		default:
+			return fmt.Errorf("'filters' config is not a map")
+		}
+	}
 	return nil
 }
 
@@ -93,6 +109,7 @@ func copyFile(basedir string, filename string) error {
 	// Try making hard link instead of copying.
 	if err := os.Link(infile, outfile); err == nil {
 		// Succeeded.
+		fmt.Printf("H %s → %s\n", filename, filepath.Join(outDirName, filename))
 		return nil
 	}
 
@@ -111,6 +128,7 @@ func copyFile(basedir string, filename string) error {
 	if err != nil {
 		return err
 	}
+	fmt.Printf("C %s → %s\n", filename, filepath.Join(outDirName, filename))
 	return nil
 }
 
@@ -134,14 +152,13 @@ func renderPages(basedir string) error {
 		p, err := LoadPage(indir, relname)
 		if err != nil && IsNotPage(err) {
 			// Not a page, copy file.
-			fmt.Printf("C %s → %s\n", relname, filepath.Join(outdir, relname))
 			return copyFile(basedir, relname)
 		}
 		if err != nil {
 			return err
 		}
 		// Render templated page.
-		fmt.Printf("P %s → %s\n", relname, filepath.Join(outDirName, p.Filename))
+		fmt.Printf("P %s → %s", relname, filepath.Join(outDirName, p.Filename))
 		l, err := layout.New("", defaultPageLayout, p.Meta, p.Content)
 		if err != nil {
 			return err
@@ -150,10 +167,19 @@ func renderPages(basedir string) error {
 		if err != nil {
 			return err
 		}
+		// Filters.
+		filtered, filterName, err := filters.FilterTextByExt(filepath.Ext(p.Filename), rendered)
+		if err != nil {
+			return err
+		}
+		if filterName != "" {
+			fmt.Printf(" (F=%s)", filterName)
+		}
+		fmt.Println("")
 		if err := os.MkdirAll(filepath.Join(outdir, filepath.Dir(p.Filename)), 0755); err != nil {
 			return err
 		}
-		if err := ioutil.WriteFile(filepath.Join(outdir, p.Filename), []byte(rendered), 0644); err != nil {
+		if err := ioutil.WriteFile(filepath.Join(outdir, p.Filename), []byte(filtered), 0644); err != nil {
 			return err
 		}
 		return nil

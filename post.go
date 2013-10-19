@@ -1,5 +1,3 @@
-// Copyright (C) 2012 Dmitry Chestnykh <dmitry@codingrobots.com>
-// License: GPL 3
 package main
 
 import (
