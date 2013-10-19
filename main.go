@@ -178,7 +178,7 @@ func renderPages(basedir string) error {
 			return err
 		}
 		// Render templated page.
-		fmt.Printf("P %s → %s", relname, filepath.Join(outDirName, p.Filename))
+		fmt.Printf("P %s → %s\n", relname, filepath.Join(outDirName, p.Filename))
 		l, err := layout.New("", defaultPageLayout, p.Meta, p.Content)
 		if err != nil {
 			return err
@@ -193,13 +193,12 @@ func renderPages(basedir string) error {
 			return err
 		}
 		if filterName != "" {
-			fmt.Printf(" (F=%s)", filterName)
+			fmt.Printf("  | filter: %s\n", filterName)
 		}
 		if hcache.Seen(filepath.Join(outDirName, p.Filename), filtered) {
-			fmt.Printf(" (unchanged)\n")
+			fmt.Println("  | unchanged")
 			return nil
 		}
-		fmt.Println("")
 		outpath := filepath.Join(outdir, p.Filename)
 		if err := os.MkdirAll(filepath.Dir(outpath), 0755); err != nil {
 			return err
@@ -264,10 +263,22 @@ func renderPosts(basedir string) error {
 		if err != nil {
 			return err
 		}
+		// Filters.
+		filtered, filterName, err := filters.FilterTextByExt(filepath.Ext(p.Filename), rendered)
+		if err != nil {
+			return err
+		}
+		if filterName != "" {
+			fmt.Printf("  | filter: %s\n", filterName)
+		}
+		if hcache.Seen(filepath.Join(outDirName, p.Filename), filtered) {
+			fmt.Println("  | unchanged")
+			return nil
+		}
 		if err := os.MkdirAll(filepath.Join(outdir, filepath.Dir(p.Filename)), 0755); err != nil {
 			return err
 		}
-		if err := ioutil.WriteFile(filepath.Join(outdir, p.Filename), []byte(rendered), 0644); err != nil {
+		if err := ioutil.WriteFile(filepath.Join(outdir, p.Filename), []byte(filtered), 0644); err != nil {
 			return err
 		}
 	}
