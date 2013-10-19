@@ -47,15 +47,15 @@ func LoadPost(basedir, filename, outNameTemplate string) (p *Post, err error) {
 	}
 
 	// Fill out name template.
-	replacements := map[string]string{
-		":year":  basefile[0:4],
-		":month": basefile[5:7],
-		":day":   basefile[8:10],
-		":name":  basefile[11:],
+	replacements := []struct{ template, rep string }{
+		{":year", basefile[0:4]},
+		{":month", basefile[5:7]},
+		{":day", basefile[8:10]},
+		{":name", basefile[11:]},
 	}
 	outname := outNameTemplate
-	for k, v := range replacements {
-		outname = strings.Replace(outname, k, v, -1)
+	for _, v := range replacements {
+		outname = strings.Replace(outname, v.template, v.rep, -1)
 	}
 
 	url := cleanPermalink(outname)
