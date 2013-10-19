@@ -1,0 +1,13 @@
+---
+layout: blog
+title: Blog
+---
+
+{{range .Site.Posts.Limit 10 }}
+<h3 class="post-title"><a href="{{.URL}}">{{.Meta.title}}</a> <small class="post-meta">{{.Date.Format "Jan 2"}}</small></h3>
+  {{.Content }}
+  <hr>
+{{end}}
+
+
+<p><a class="btn" href="archive.html">All Posts</a></p>

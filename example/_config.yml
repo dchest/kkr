@@ -1,0 +1,4 @@
+title: Example Website
+author: Kukuruz Authors
+permalink: /blog/:year/:month/:day/:name/
+url: http://www.example.com
