@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"runtime/pprof"
 	"time"
 
 	"github.com/dchest/fsnotify"
@@ -379,8 +380,9 @@ func startWatcher(wd string) *fsnotify.Watcher {
 }
 
 var (
-	fHttp  = flag.String("http", "localhost:8080", "address and port to use for serving")
-	fWatch = flag.Bool("watch", false, "watch for changes")
+	fHttp       = flag.String("http", "localhost:8080", "address and port to use for serving")
+	fWatch      = flag.Bool("watch", false, "watch for changes")
+	fCPUProfile = flag.String("cpuprofile", "", "(debug) write CPU profile to file")
 )
 
 var Usage = func() {
@@ -410,6 +412,16 @@ func main() {
 	os.Args = os.Args[1:]
 
 	flag.Parse()
+
+	if *fCPUProfile != "" {
+		f, err := os.Create(*fCPUProfile)
+		if err != nil {
+			log.Fatal(err)
+		}
+		defer f.Close()
+		pprof.StartCPUProfile(f)
+		defer pprof.StopCPUProfile()
+	}
 
 	wd, err := os.Getwd()
 	if err != nil {
