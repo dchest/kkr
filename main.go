@@ -53,9 +53,14 @@ func isPostFileName(filename string) bool {
 }
 
 // isIgnoredFile returns true if filename should be ignored
-// when reading posts and pages.
+// when reading posts and pages (or copying).
 func isIgnoredFile(filename string) bool {
+	// Files ending with ~ are considered temporary.
 	if filename[len(filename)-1] == '~' {
+		return true
+	}
+	// Crap from OS X Finder.
+	if filename == ".DS_Store" {
 		return true
 	}
 	return false
@@ -318,8 +323,8 @@ func build(wd string) {
 	//}
 	// Clean cache if _out dir doesn't exist.
 	if !isDirExist(filepath.Join(wd, outDirName)) {
-		log.Printf("* Cleaned hashcache.")
-		hcache.Clean()
+		//log.Printf("* Cleaned hashcache.")
+		//hcache.Clean()
 	} else {
 		// Remove _out.
 		if !*fNoRemove {
@@ -446,7 +451,7 @@ var (
 	fHttp       = flag.String("http", "localhost:8080", "address and port to use for serving")
 	fWatch      = flag.Bool("watch", false, "watch for changes")
 	fNoFilters  = flag.Bool("nofilters", false, "disable filters")
-	fNoRemove   = flag.Bool("noremove", false, "don't delete " + outDirName + " before building")
+	fNoRemove   = flag.Bool("noremove", false, "don't delete "+outDirName+" before building")
 	fCPUProfile = flag.String("cpuprofile", "", "(debug) write CPU profile to file")
 )
 
