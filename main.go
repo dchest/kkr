@@ -38,7 +38,6 @@ const (
 )
 
 var site map[string]interface{}
-var siteFilters map[string]string
 var hcache *hashcache.Cache
 
 var postExtensions = []string{".html", ".htm", ".md", ".markdown"}
@@ -429,6 +428,7 @@ func startWatcher(basedir string) (*fsnotify.Watcher, error) {
 var (
 	fHttp       = flag.String("http", "localhost:8080", "address and port to use for serving")
 	fWatch      = flag.Bool("watch", false, "watch for changes")
+	fNoFilters  = flag.Bool("nofilters", false, "disable filters")
 	fCPUProfile = flag.String("cpuprofile", "", "(debug) write CPU profile to file")
 )
 
@@ -469,6 +469,8 @@ func main() {
 		pprof.StartCPUProfile(f)
 		defer pprof.StopCPUProfile()
 	}
+
+	filters.SetEnabled(!*fNoFilters)
 
 	wd, err := os.Getwd()
 	if err != nil {

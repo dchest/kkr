@@ -21,7 +21,6 @@ type Asset struct {
 	OutName string   `yaml:"outname"`
 
 	Filename string
-	f        filters.Filter
 }
 
 var assetsByName = make(map[string]*Asset)
@@ -44,6 +43,9 @@ func LoadAssets(filename string) error {
 	}
 	// Put assets into assetsByName map.
 	for _, v := range assets {
+		if _, exists := assetsByName[v.Name]; exists {
+			return fmt.Errorf("duplicate asset name %q", v.Name)
+		}
 		assetsByName[v.Name] = v
 	}
 	return nil
@@ -84,13 +86,7 @@ func (a *Asset) LoadFilter() error {
 	if len(a.Filter) == 0 {
 		return nil
 	}
-	filterName := a.Filter[0]
-	maker, err := filters.GetFilterMakerByName(filterName)
-	if err != nil {
-		return err
-	}
-	a.f = maker(a.Filter[1:])
-	return nil
+	return filters.RegisterAssetName(a.Name, a.Filter[0], a.Filter[1:])
 }
 
 func (a *Asset) Process(outdir string) error {
@@ -100,8 +96,8 @@ func (a *Asset) Process(outdir string) error {
 		return err
 	}
 	// Filter result.
-	if a.f != nil {
-		s, err := a.f.Filter(string(b))
+	if a.Filter != nil && filters.HasFilterForAssetName(a.Name) {
+		s, _, err := filters.FilterTextByAssetName(a.Name, string(b))
 		if err != nil {
 			return err
 		}

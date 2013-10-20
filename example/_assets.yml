@@ -1,10 +1,10 @@
 ---
 - name: global-style
   files: [_assets/css/main.css, _assets/css/blog.css]
-  #filter: [exec, "yui-compressor", "--type", "css"]
+  filter: [exec, "yui-compressor", "--type", "css"]
   outname: /assets/global-:hash.css
 
 - name: hello-js
   files: [_assets/js/hello.js]
-  #filter: [exec, "yui-compressor", "--type", "js"]
+  filter: [exec, "yui-compressor", "--type", "js"]
   outname: /assets/hello-:hash.js
