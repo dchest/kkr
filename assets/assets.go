@@ -99,6 +99,15 @@ func (a *Asset) Process(outdir string) error {
 	if err != nil {
 		return err
 	}
+	// Filter result.
+	if a.f != nil {
+		s, err := a.f.Filter(string(b))
+		if err != nil {
+			return err
+		}
+		b = []byte(s)
+
+	}
 	// Calculate hash.
 	h := md5.New()
 	h.Write(b)
@@ -110,15 +119,6 @@ func (a *Asset) Process(outdir string) error {
 		a.Filename = string(h.Sum(nil))
 	}
 	log.Printf("A %s", a.Filename)
-	// Filter result.
-	if a.f != nil {
-		s, err := a.f.Filter(string(b))
-		if err != nil {
-			return err
-		}
-		b = []byte(s)
-
-	}
 	// Write to file.
 	outfile := filepath.Join(outdir, filepath.FromSlash(a.Filename))
 	if err := os.MkdirAll(filepath.Dir(outfile), 0755); err != nil {
