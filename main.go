@@ -198,10 +198,10 @@ func renderPages(basedir string) error {
 		if filterName != "" {
 			log.Printf("  | filter: %s\n", filterName)
 		}
-		if hcache.Seen(filepath.Join(outDirName, p.Filename), filtered) {
-			log.Println("  | unchanged")
-			return nil
-		}
+		//if hcache.Seen(filepath.Join(outDirName, p.Filename), filtered) {
+		//	log.Println("  | unchanged")
+		//	return nil
+		//}
 		outpath := filepath.Join(outdir, p.Filename)
 		if err := os.MkdirAll(filepath.Dir(outpath), 0755); err != nil {
 			return err
@@ -274,10 +274,10 @@ func renderPosts(basedir string) error {
 		if filterName != "" {
 			log.Printf("  | filter: %s\n", filterName)
 		}
-		if hcache.Seen(filepath.Join(outDirName, p.Filename), filtered) {
-			log.Println("  | unchanged")
-			return nil
-		}
+		//if hcache.Seen(filepath.Join(outDirName, p.Filename), filtered) {
+		//	log.Println("  | unchanged")
+		//	return nil
+		//}
 		if err := os.MkdirAll(filepath.Join(outdir, filepath.Dir(p.Filename)), 0755); err != nil {
 			return err
 		}
@@ -311,11 +311,11 @@ func build(wd string) {
 	log.Println("* Building:")
 
 	// Load hashcache.
-	var err error
-	hcache, err = hashcache.Open(hashCacheFileName)
-	if err != nil {
-		log.Fatalf("! Cannot load or create hashcache, please delete %q", hashCacheFileName)
-	}
+	//var err error
+	//hcache, err = hashcache.Open(hashCacheFileName)
+	//if err != nil {
+	//	log.Fatalf("! Cannot load or create hashcache, please delete %q", hashCacheFileName)
+	//}
 	// Clean cache if _out dir doesn't exist.
 	if !isDirExist(filepath.Join(wd, outDirName)) {
 		log.Printf("* Cleaned hashcache.")
@@ -365,9 +365,9 @@ func build(wd string) {
 	}
 
 	// Save hashcache.
-	if err := hcache.Save(); err != nil {
-		log.Fatalf("! Cannot save hashcache")
-	}
+	//if err := hcache.Save(); err != nil {
+	//	log.Fatalf("! Cannot save hashcache")
+	//}
 
 	log.Printf("* Done in %s\n", time.Now().Sub(startTime))
 }
