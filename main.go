@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime/pprof"
+	"sync"
 	"time"
 
 	"github.com/dchest/fsnotify"
@@ -39,6 +40,7 @@ const (
 
 var site map[string]interface{}
 var hcache *hashcache.Cache
+var buildMutex sync.Mutex
 
 var postExtensions = []string{".html", ".htm", ".md", ".markdown"}
 
@@ -311,6 +313,9 @@ func clean(wd string) {
 }
 
 func build(wd string) {
+	buildMutex.Lock()
+	defer buildMutex.Unlock()
+
 	startTime := time.Now()
 
 	log.Println("* Building:")
@@ -374,6 +379,9 @@ func build(wd string) {
 	//	log.Fatalf("! Cannot save hashcache")
 	//}
 
+	// Clean assets.
+	assets.Clean()
+
 	log.Printf("* Done in %s\n", time.Now().Sub(startTime))
 }
 
@@ -405,6 +413,9 @@ func getWatchedDirs(basedir string) (dirs []string, err error) {
 
 func isWatcherIgnored(name string) bool {
 	if filepath.Base(name) == hashCacheFileName {
+		return true
+	}
+	if filepath.Base(name) == outDirName {
 		return true
 	}
 	return false

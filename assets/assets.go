@@ -133,3 +133,7 @@ func AssetByName(name string) (*Asset, error) {
 	}
 	return a, nil
 }
+
+func Clean() {
+	assetsByName = make(map[string]*Asset)
+}
