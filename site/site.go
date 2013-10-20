@@ -149,32 +149,57 @@ func (s *Site) LoadPosts() (err error) {
 	return nil
 }
 
+func (s *Site) RenderPost(p *Post) error {
+	// Render post.
+	data, err := s.Layouts.RenderPage(p, DefaultPostLayout)
+	if err != nil {
+		return err
+	}
+	log.Printf("B > %s\n", filepath.Join(OutDirName, p.Filename))
+	// Apply filter.
+	data, err = s.PageFilters.ApplyFilter(filepath.Ext(p.Filename), data)
+	if err != nil {
+		return err
+	}
+	// Write to file.
+	return utils.WriteStringToFile(filepath.Join(s.BaseDir, OutDirName, p.Filename), data)
+}
+
 func (s *Site) RenderPosts() error {
-	outDir := filepath.Join(s.BaseDir, OutDirName)
 	for _, p := range s.Config.Posts {
-		// Render post.
-		data, err := s.Layouts.RenderPage(p, DefaultPostLayout)
-		if err != nil {
-			return err
-		}
-		log.Printf("B > %s\n", filepath.Join(OutDirName, p.Filename))
-		// Apply filter.
-		data, err = s.PageFilters.ApplyFilter(filepath.Ext(p.Filename), data)
-		if err != nil {
-			return err
-		}
-		// Write to file.
-		err = utils.WriteStringToFile(filepath.Join(outDir, p.Filename), data)
-		if err != nil {
+		if err := s.RenderPost(p); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
+func (s *Site) RenderPage(pagesDir, relname string) error {
+	p, err := LoadPage(pagesDir, relname)
+	if err != nil {
+		if IsNotPage(err) {
+			// Not a page, copy file.
+			return s.CopyFile(relname)
+		}
+		return err
+	}
+	// Render page.
+	data, err := s.Layouts.RenderPage(p, DefaultPageLayout)
+	if err != nil {
+		return err
+	}
+	log.Printf("P %s → %s\n", relname, filepath.Join(OutDirName, p.Filename))
+	// Apply filter.
+	data, err = s.PageFilters.ApplyFilter(filepath.Ext(p.Filename), data)
+	if err != nil {
+		return err
+	}
+	// Write to file.
+	return utils.WriteStringToFile(filepath.Join(s.BaseDir, OutDirName, p.Filename), data)
+}
+
 func (s *Site) RenderPages() error {
 	inDir := filepath.Join(s.BaseDir, PagesDirName)
-	outDir := filepath.Join(s.BaseDir, OutDirName)
 	return filepath.Walk(inDir, func(path string, fi os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -186,30 +211,10 @@ func (s *Site) RenderPages() error {
 		if fi.IsDir() {
 			return nil // TODO(dchest): create directories?
 		}
-		if s.isIgnoredFile(relname) {
+		if s.isIgnoredFile(filepath.Base(relname)) {
 			return nil // skip ignored files
 		}
-		p, err := LoadPage(inDir, relname)
-		if err != nil {
-			if IsNotPage(err) {
-				// Not a page, copy file.
-				return s.CopyFile(relname)
-			}
-			return err
-		}
-		// Render page.
-		data, err := s.Layouts.RenderPage(p, DefaultPageLayout)
-		if err != nil {
-			return err
-		}
-		log.Printf("P %s → %s\n", relname, filepath.Join(OutDirName, p.Filename))
-		// Apply filter.
-		data, err = s.PageFilters.ApplyFilter(filepath.Ext(p.Filename), data)
-		if err != nil {
-			return err
-		}
-		// Write to file.
-		return utils.WriteStringToFile(filepath.Join(outDir, p.Filename), data)
+		return s.RenderPage(inDir, relname)
 	})
 }
 
