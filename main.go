@@ -132,7 +132,7 @@ func copyFile(basedir string, filename string) error {
 	// Try making hard link instead of copying.
 	if err := os.Link(infile, outfile); err == nil {
 		// Succeeded.
-		fmt.Printf("H %s → %s\n", filename, filepath.Join(outDirName, filename))
+		log.Printf("H %s → %s\n", filename, filepath.Join(outDirName, filename))
 		return nil
 	}
 
@@ -151,7 +151,7 @@ func copyFile(basedir string, filename string) error {
 	if err != nil {
 		return err
 	}
-	fmt.Printf("C %s → %s\n", filename, filepath.Join(outDirName, filename))
+	log.Printf("C %s → %s\n", filename, filepath.Join(outDirName, filename))
 	return nil
 }
 
@@ -181,7 +181,7 @@ func renderPages(basedir string) error {
 			return err
 		}
 		// Render templated page.
-		fmt.Printf("P %s → %s\n", relname, filepath.Join(outDirName, p.Filename))
+		log.Printf("P %s → %s\n", relname, filepath.Join(outDirName, p.Filename))
 		l, err := layout.New("", defaultPageLayout, p.Meta, p.Content)
 		if err != nil {
 			return err
@@ -196,10 +196,10 @@ func renderPages(basedir string) error {
 			return err
 		}
 		if filterName != "" {
-			fmt.Printf("  | filter: %s\n", filterName)
+			log.Printf("  | filter: %s\n", filterName)
 		}
 		if hcache.Seen(filepath.Join(outDirName, p.Filename), filtered) {
-			fmt.Println("  | unchanged")
+			log.Println("  | unchanged")
 			return nil
 		}
 		outpath := filepath.Join(outdir, p.Filename)
@@ -238,7 +238,7 @@ func loadPosts(basedir string) error {
 			return err
 		}
 		posts = append(posts, p)
-		fmt.Printf("B < %s\n", relname)
+		log.Printf("B < %s\n", relname)
 		return nil
 	})
 	if err != nil {
@@ -257,7 +257,7 @@ func renderPosts(basedir string) error {
 	}
 	for _, p := range posts.(Posts) {
 		// Render post.
-		fmt.Printf("B > %s\n", filepath.Join(outDirName, p.Filename))
+		log.Printf("B > %s\n", filepath.Join(outDirName, p.Filename))
 		l, err := layout.New("", defaultPostLayout, p.Meta, p.Content)
 		if err != nil {
 			return err
@@ -272,10 +272,10 @@ func renderPosts(basedir string) error {
 			return err
 		}
 		if filterName != "" {
-			fmt.Printf("  | filter: %s\n", filterName)
+			log.Printf("  | filter: %s\n", filterName)
 		}
 		if hcache.Seen(filepath.Join(outDirName, p.Filename), filtered) {
-			fmt.Println("  | unchanged")
+			log.Println("  | unchanged")
 			return nil
 		}
 		if err := os.MkdirAll(filepath.Join(outdir, filepath.Dir(p.Filename)), 0755); err != nil {
@@ -440,7 +440,6 @@ Commands:
   serve  - start a web server
 
 Options:
-
 `)
 	flag.PrintDefaults()
 }
