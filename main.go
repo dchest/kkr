@@ -26,6 +26,7 @@ const (
 	pagesDirName      = "_pages"
 	postsDirName      = "_posts"
 	outDirName        = "_out"
+	assetsDirName     = "_assets" // this is only used in watcher
 	siteFileName      = "_config.yml"
 	assetsFileName    = "_assets.yml"
 	hashCacheFileName = ".kkr-hashcache"
@@ -361,39 +362,68 @@ func serve(wd string) {
 	log.Fatal(http.ListenAndServe(*fHttp, http.FileServer(http.Dir(outdir))))
 }
 
-func startWatcher(wd string) *fsnotify.Watcher {
+func getWatchedDirs(basedir string) (dirs []string, err error) {
+	// Watch every subdirectory of site except for _out dir.
+	outdir := filepath.Join(basedir, outDirName)
+	dirs = make([]string, 0)
+	err = filepath.Walk(basedir, func(path string, fi os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !fi.IsDir() {
+			return nil // skip non-directories
+		}
+		if path == outdir {
+			return filepath.SkipDir // skip out directory and its subdirectories
+		}
+		dirs = append(dirs, path)
+		return nil
+	})
+	return
+}
+
+func isWatcherIgnored(name string) bool {
+	if filepath.Base(name) == hashCacheFileName {
+		return true
+	}
+	return false
+}
+
+func startWatcher(basedir string) (*fsnotify.Watcher, error) {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
-		log.Fatal(err)
+		return nil, err
 	}
 
 	go func(basedir string) {
 		for {
 			select {
 			case ev := <-watcher.Event:
+				if isWatcherIgnored(ev.Name) {
+					break
+				}
 				log.Println("W event:", ev)
 				build(basedir)
 			case err := <-watcher.Error:
 				log.Println("! Watcher error:", err)
 			}
 		}
-	}(wd)
+	}(basedir)
 
-	watchedPaths := []string{
-		layoutsDirName,
-		pagesDirName,
-		postsDirName,
+	watchedDirs, err := getWatchedDirs(basedir)
+	if err != nil {
+		return nil, err
 	}
 
-	for _, dir := range watchedPaths {
-		err = watcher.Watch(filepath.Join(wd, dir))
+	for _, dir := range watchedDirs {
+		err = watcher.Watch(dir)
 		if err != nil {
-			log.Fatal(err)
+			return nil, err
 		}
 	}
 
 	log.Printf("* Watching for changes.")
-	return watcher
+	return watcher, nil
 }
 
 var (
@@ -450,7 +480,10 @@ func main() {
 
 	var watcher *fsnotify.Watcher
 	if *fWatch {
-		watcher = startWatcher(wd)
+		watcher, err = startWatcher(wd)
+		if err != nil {
+			log.Fatalf("! Cannot start watcher: %s", err)
+		}
 	}
 
 	switch command {

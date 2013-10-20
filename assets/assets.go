@@ -51,6 +51,11 @@ func LoadAssets(filename string) error {
 
 func ProcessAssets(outdir string) error {
 	for _, v := range assetsByName {
+		// Load filters.
+		if err := v.LoadFilter(); err != nil {
+			return err
+		}
+		// Process.
 		if err := v.Process(outdir); err != nil {
 			return err
 		}

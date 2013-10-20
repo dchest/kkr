@@ -3,10 +3,17 @@ layout: page
 title: Home
 ---
 
-<p>Welcome to <b>{{.Site.title}}</b>!</p>
+<p>
+Welcome to <b>{{.Site.title}}</b>!
+<span id="hello"></span>
+</p>
+
+
 <p>Please click on one of these links:</p>
 <ul>
   <li><a href="about.html">About this site</a></li>
   <li><a href="lorem.txt">Lorem Ipsum</a></li>
   <li><a href="blog/">Blog</a></li>
 </ul>
+
+<script src="{{ asset "hello-js" }}"></script>
