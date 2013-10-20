@@ -296,6 +296,15 @@ func isDirExist(path string) bool {
 	return fi.IsDir()
 }
 
+func clean(wd string) {
+	os.Remove(filepath.Join(wd, hashCacheFileName))
+	if !*fNoRemove {
+		if err := os.RemoveAll(filepath.Join(wd, outDirName)); err != nil {
+			log.Printf("! Error removing: %s. Continuing...", err)
+		}
+	}
+}
+
 func build(wd string) {
 	startTime := time.Now()
 
@@ -311,6 +320,14 @@ func build(wd string) {
 	if !isDirExist(filepath.Join(wd, outDirName)) {
 		log.Printf("* Cleaned hashcache.")
 		hcache.Clean()
+	} else {
+		// Remove _out.
+		if !*fNoRemove {
+			log.Printf("* Removing %q\n", outDirName)
+			if err := os.RemoveAll(filepath.Join(wd, outDirName)); err != nil {
+				log.Printf("! Error removing: %s. Continuing...", err)
+			}
+		}
 	}
 
 	// Load and process assets.
@@ -429,6 +446,7 @@ var (
 	fHttp       = flag.String("http", "localhost:8080", "address and port to use for serving")
 	fWatch      = flag.Bool("watch", false, "watch for changes")
 	fNoFilters  = flag.Bool("nofilters", false, "disable filters")
+	fNoRemove   = flag.Bool("noremove", false, "don't delete " + outDirName + " before building")
 	fCPUProfile = flag.String("cpuprofile", "", "(debug) write CPU profile to file")
 )
 
@@ -438,6 +456,7 @@ var Usage = func() {
 Commands:
   build  - build website
   serve  - start a web server
+  clean  - clean caches and remove output directory
 
 Options:
 `)
@@ -496,6 +515,8 @@ func main() {
 	case "serve":
 		build(wd)
 		serve(wd)
+	case "clean":
+		clean(wd)
 	default:
 		log.Printf("! unknown command %s", command)
 		flag.Usage()
