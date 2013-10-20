@@ -2,6 +2,7 @@ package assets
 
 import (
 	"crypto/md5"
+	"encoding/base32"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -68,7 +69,9 @@ func ProcessAssets(outdir string) error {
 // fillTemplate replaces ":hash" in template with hexadecimal characters of
 // hash and returns the result.
 func fillTemplate(template string, hash []byte) string {
-	return strings.Replace(template, ":hash", fmt.Sprintf("%x", hash), -1)
+	// 10 bytes of hash is enough to avoid accidental collisions.
+	hs := strings.ToLower(base32.StdEncoding.EncodeToString(hash[:10]))
+	return strings.Replace(template, ":hash", hs, -1)
 }
 
 func concatFiles(filenames []string) (out []byte, err error) {
