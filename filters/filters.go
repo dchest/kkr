@@ -48,3 +48,11 @@ func FilterTextByExt(ext string, text string) (out string, filterName string, er
 func RegisterMaker(filterName string, fn func([]string) Filter) {
 	filterMakersByName[filterName] = fn
 }
+
+func GetFilterMakerByName(filterName string) (FilterMaker, error) {
+	maker, ok := filterMakersByName[filterName]
+	if !ok {
+		return nil, fmt.Errorf("filter %s not found", filterName)
+	}
+	return maker, nil
+}

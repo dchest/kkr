@@ -32,6 +32,13 @@ func (c *Cache) contentHash(content string) (sum [hashSize]byte) {
 	return
 }
 
+// Clean cleans the cache.
+func (c *Cache) Clean() {
+	c.Lock()
+	defer c.Unlock()
+	c.m = make(map[string][hashSize]byte)
+}
+
 // Seen sets content hash for the given path to a new value.
 // It returns true if the content was already cached and had the same hash.
 func (c *Cache) Seen(path, content string) bool {

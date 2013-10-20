@@ -1,0 +1,4 @@
+---
+- name: global-style
+  files: [_assets/main.css, _assets/blog.css]
+  outname: /assets/global-:hash.css

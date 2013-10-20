@@ -53,32 +53,6 @@ footer {
   max-width: 700px;
 }
 
-.blog-header {
-}
-
-.blog-header a:link,
-.blog-header a:visited {
-  color: #cc0000;
-  text-decoration: none;
-}
-
-.blog-footer {
-  padding: 4px 0;
-}
-
-.blog-footer a {
-  color: #ff8c00;
-}
-
-a.post-title:link,
-a.post-title:visited {
-}
-
-.post-meta {
-  color: #888;
-  font-weight: 100;
-}
-
 a.btn {
   padding: 8px 16px;
   border: 1px solid #ddd;

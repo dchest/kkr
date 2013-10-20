@@ -15,6 +15,7 @@ import (
 	"github.com/dchest/fsnotify"
 	"github.com/dchest/goyaml"
 
+	"github.com/dchest/kkr/assets"
 	"github.com/dchest/kkr/filters"
 	"github.com/dchest/kkr/hashcache"
 	"github.com/dchest/kkr/layout"
@@ -26,6 +27,7 @@ const (
 	postsDirName      = "_posts"
 	outDirName        = "_out"
 	siteFileName      = "_config.yml"
+	assetsFileName    = "_assets.yml"
 	hashCacheFileName = ".kkr-hashcache"
 
 	defaultPermalink = "blog/:year/:month/:day/:name/"
@@ -298,15 +300,30 @@ func build(wd string) {
 	startTime := time.Now()
 
 	log.Println("* Building:")
-	err := loadLayouts(wd)
-	if err != nil {
-		log.Fatalf("! Cannot load layouts: %s", err)
-	}
 
 	// Load hashcache.
+	var err error
 	hcache, err = hashcache.Open(hashCacheFileName)
 	if err != nil {
 		log.Fatalf("! Cannot load or create hashcache, please delete %q", hashCacheFileName)
+	}
+	// Clean cache if _out dir doesn't exist.
+	if !isDirExist(filepath.Join(wd, outDirName)) {
+		log.Printf("* Cleaned hashcache.")
+		hcache.Clean()
+	}
+
+	// Load and process assets.
+	if err := assets.LoadAssets(filepath.Join(wd, assetsFileName)); err != nil {
+		log.Fatalf("! Cannot load assets: %s", err)
+	}
+	if err := assets.ProcessAssets(filepath.Join(wd, outDirName)); err != nil {
+		log.Fatalf("! Error processing assets: %s", err)
+	}
+
+	// Load layouts.
+	if err := loadLayouts(wd); err != nil {
+		log.Fatalf("! Cannot load layouts: %s", err)
 	}
 
 	// Load and render posts.

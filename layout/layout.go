@@ -11,6 +11,7 @@ import (
 	"text/template"
 
 	"github.com/dchest/kkr/metafile"
+	"github.com/dchest/kkr/assets"
 )
 
 type Layout struct {
@@ -31,6 +32,14 @@ var funcMap = template.FuncMap{
 			return "", err
 		}
 		return buf.String(), nil
+	},
+	// asset returns asset filename by its name.
+	"asset": func(name string) (string, error) {
+		a, err := assets.AssetByName(name)
+		if err != nil {
+			return "", err
+		}
+		return a.Filename, nil
 	},
 }
 
