@@ -1,4 +1,4 @@
-package main
+package site
 
 import (
 	"errors"
@@ -8,6 +8,8 @@ import (
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/dchest/kkr/utils"
 )
 
 type Post struct {
@@ -34,10 +36,10 @@ func LoadPost(basedir, filename, outNameTemplate string) (p *Post, err error) {
 		return
 	}
 	// Now try getting date from meta.
-	if md, ok := page.Meta["date"]; ok {
+	if md, ok := page.meta["date"]; ok {
 		switch d := md.(type) {
 		case string:
-			date, err = parseAnyDate(d)
+			date, err = utils.ParseAnyDate(d)
 			if err != nil {
 				return nil, err
 			}
@@ -58,11 +60,11 @@ func LoadPost(basedir, filename, outNameTemplate string) (p *Post, err error) {
 		outname = strings.Replace(outname, v.template, v.rep, -1)
 	}
 
-	url := cleanPermalink(outname)
+	url := utils.CleanPermalink(outname)
 	// Add properies to meta
-	page.Meta["date"] = date
-	page.Meta["url"] = url
-	page.Meta["id"] = basefile
+	page.meta["date"] = date
+	page.meta["url"] = url
+	page.meta["id"] = basefile
 
 	// Add index.html if ends with slash.
 	if outname[len(outname)-1] == '/' {
@@ -95,4 +97,16 @@ func (pp Posts) Swap(i, j int)      { pp[i], pp[j] = pp[j], pp[i] }
 
 func (pp Posts) Sort() {
 	sort.Sort(pp)
+}
+
+var postExtensions = []string{".html", ".htm", ".md", ".markdown"}
+
+func isPostFileName(filename string) bool {
+	ext := filepath.Ext(filename)
+	for _, v := range postExtensions {
+		if v == ext {
+			return true
+		}
+	}
+	return false
 }

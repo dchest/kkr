@@ -1,4 +1,4 @@
-package main
+package site
 
 import (
 	"errors"
@@ -8,15 +8,19 @@ import (
 	"github.com/dchest/blackfriday"
 
 	"github.com/dchest/kkr/metafile"
+	"github.com/dchest/kkr/utils"
 )
 
 type Page struct {
-	Meta     map[string]interface{}
-	Content  string
+	meta     map[string]interface{}
+	content  string
 	Basedir  string
 	Filename string
 	URL      string
 }
+
+func (p *Page) Meta() map[string]interface{} { return p.meta }
+func (p *Page) Content() string              { return p.content }
 
 var NotPageError = errors.New("not a page")
 
@@ -48,15 +52,15 @@ func LoadPage(basedir, filename string) (p *Page, err error) {
 		content = blackfriday.MarkdownCommon(content)
 	}
 
-	url := cleanPermalink(filepath.ToSlash(filename))
+	url := utils.CleanPermalink(filepath.ToSlash(filename))
 	meta["url"] = url
 	meta["id"] = filepath.ToSlash(filename)
 
 	return &Page{
-		Meta:     meta,
+		meta:     meta,
+		content:  string(content),
 		Basedir:  basedir,
 		Filename: filename,
 		URL:      url,
-		Content:  string(content),
 	}, nil
 }

@@ -1,8 +1,8 @@
-title: Example Website
+name: Example Website
 author: Kukuruz Authors
 permalink: /blog/:year/:month/:day/:name/
 url: http://www.example.com
 
 filters:
-        html: htmlmin
-        txt: [exec, fold, "-sw 60"]  # comment this out on Windows
+        .html: htmlmin
+        .txt: [exec, fold, "-sw 60"]  # comment this out on Windows

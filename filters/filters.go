@@ -2,88 +2,108 @@ package filters
 
 import (
 	"fmt"
+	"sync"
 )
 
+// Filter is an interface declaring a filter.
 type Filter interface {
 	Name() string
-	Filter(string) (string, error)
+	Apply(string) (string, error)
 }
 
-type FilterMaker func([]string) Filter
+// Maker is a type of function which accepts arguments
+// for filter and returns a new instance of the filter.
+type Maker func([]string) Filter
 
-var (
-	filtersEnabled = true
+// makers stores builtin filter makers addressed by their names.
+var makers = make(map[string]Maker)
 
-	filterMakersByName = make(map[string]FilterMaker)
+// Register registers a new filter maker.
+func Register(name string, maker Maker) {
+	makers[name] = maker
+}
 
-	filtersByExt       = make(map[string]Filter)
-	filtersByAssetName = make(map[string]Filter)
-)
-
-func RegisterExt(extension, filterName string, args []string) error {
-	fm, ok := filterMakersByName[filterName]
-	if !ok {
-		return fmt.Errorf("filter %q not found", filterName)
+// Make creates a new filter by name with the given arguments.
+// It returns nil if it can't find a filter maker with such name.
+func Make(name string, args []string) Filter {
+	maker := makers[name]
+	if maker == nil {
+		return nil
 	}
-	// Make sure extension starts with dot.
-	if extension[0] != '.' {
-		extension = "." + extension
+	return maker(args)
+}
+
+// Collection is a collection of filters addressed by some key.
+type Collection struct {
+	sync.Mutex
+	filters map[string]Filter
+	enabled bool
+}
+
+// NewCollection returns a new collection.
+func NewCollection() *Collection {
+	return &Collection{
+		filters: make(map[string]Filter),
+		enabled: true,
 	}
-	filtersByExt[extension] = fm(args)
+}
+
+// SetEnabled sets enabled state of the collection.
+func (c *Collection) SetEnabled(enabled bool) {
+	c.Lock()
+	defer c.Unlock()
+	c.enabled = enabled
+}
+
+// Add adds the filter to collection to be addressable by key.
+func (c *Collection) Add(key string, filterName string, args []string) error {
+	c.Lock()
+	defer c.Unlock()
+	f := Make(filterName, args)
+	if f == nil {
+		return fmt.Errorf("filter %s not found", filterName)
+	}
+	c.filters[key] = f
 	return nil
 }
 
-func RegisterAssetName(assetName string, filterName string, args []string) error {
-	fm, ok := filterMakersByName[filterName]
-	if !ok {
-		return fmt.Errorf("filter %q not found", filterName)
+// AddFromYAML parses a `filters` value (line) and adds corresponding filters.
+func (c *Collection) AddFromYAML(key string, line interface{}) error {
+	switch x := line.(type) {
+	case string:
+		return c.Add(key, x, nil)
+	case []interface{}:
+		args := make([]string, len(x))
+		for i, v := range x {
+			s, ok := v.(string)
+			if !ok {
+				return fmt.Errorf("failed to parse filters: not an array of strings")
+			}
+			args[i] = s
+		}
+		return c.Add(key, args[0], args[1:])
+	default:
+		return fmt.Errorf("failed to parse filters: not a string or array")
 	}
-	filtersByAssetName[assetName] = fm(args)
-	return nil
 }
 
-func HasFilterForExt(extension string) bool {
-	_, ok := filtersByExt[extension]
-	return ok
+// Get returns a filter for key.
+// It returns nil if the filter wasn't found.
+func (c *Collection) Get(key string) Filter {
+	c.Lock()
+	defer c.Unlock()
+	return c.filters[key]
 }
 
-func HasFilterForAssetName(assetName string) bool {
-	_, ok := filtersByAssetName[assetName]
-	return ok
-}
-
-func FilterTextByExt(extension string, text string) (out string, filterName string, err error) {
-	if !filtersEnabled {
-		return text, "", nil
+// ApplyFilter applies a filter found by key to the given string.
+// If the filter wasn't found, returns the original string.
+// TODO: do we need this method at all?
+func (c *Collection) ApplyFilter(key string, in string) (out string, err error) {
+	c.Lock()
+	defer c.Unlock()
+	f := c.filters[key]
+	if f == nil {
+		return in, nil
 	}
-	f, ok := filtersByExt[extension]
-	if !ok {
-		// No filter.
-		return text, "", nil
-	}
-	filterName = f.Name()
-	out, err = f.Filter(text)
-	return
-}
-
-func FilterTextByAssetName(assetName string, text string) (out string, filterName string, err error) {
-	if !filtersEnabled {
-		return text, "", nil
-	}
-	f, ok := filtersByAssetName[assetName]
-	if !ok {
-		// No filter.
-		return text, "", nil
-	}
-	filterName = f.Name()
-	out, err = f.Filter(text)
-	return
-}
-
-func RegisterMaker(filterName string, fn func([]string) Filter) {
-	filterMakersByName[filterName] = fn
-}
-
-func SetEnabled(enabled bool) {
-	filtersEnabled = enabled
+	return f.Apply(in)
 }

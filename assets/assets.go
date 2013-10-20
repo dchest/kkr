@@ -1,7 +1,6 @@
 package assets
 
 import (
-	"crypto/md5"
 	"encoding/base32"
 	"fmt"
 	"io/ioutil"
@@ -9,61 +8,77 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-
-	"github.com/dchest/goyaml"
+	"sync"
 
 	"github.com/dchest/kkr/filters"
+	"github.com/dchest/kkr/utils"
 )
 
 type Asset struct {
-	Name    string   `yaml:"name"`
-	Filter  []string `yaml:"filter,omitempty"`
-	Files   []string `yaml:"files"`
-	OutName string   `yaml:"outname"`
+	Name    string      `yaml:"name"`
+	Filter  interface{} `yaml:"filter,omitempty"`
+	Files   []string    `yaml:"files"`
+	OutName string      `yaml:"outname"`
 
 	Filename string
 }
 
-var assetsByName = make(map[string]*Asset)
+type Collection struct {
+	sync.Mutex
+	assets  map[string]*Asset
+	filters *filters.Collection
+}
 
-func LoadAssets(filename string) error {
-	// Read file.
-	b, err := ioutil.ReadFile(filename)
+// Load loads an asset collection from the given assets config file and returns it.
+func Load(filename string) (c *Collection, err error) {
+	// Load assets description from file (or create a new).
+	var assets []*Asset
+	err = utils.UnmarshallYAMLFile(filename, &assets)
 	if err != nil {
 		if os.IsNotExist(err) {
-			// Have no assets, it's okay.
-			return nil
+			// No assets file is not an error,
+			// create an empty collection.
+			assets = make([]*Asset, 0)
+			err = nil
+		} else {
+			return
 		}
-		return err
 	}
-	// Unmarshall YAML.
-	var assets []*Asset
-	err = goyaml.Unmarshal(b, &assets)
-	if err != nil {
-		return err
+
+	// Put assets into a map addressed by name and load filters.
+	c = &Collection{
+		assets:  make(map[string]*Asset),
+		filters: filters.NewCollection(),
 	}
-	// Put assets into assetsByName map.
 	for _, v := range assets {
-		if _, exists := assetsByName[v.Name]; exists {
-			return fmt.Errorf("duplicate asset name %q", v.Name)
+		if _, exists := c.assets[v.Name]; exists {
+			return nil, fmt.Errorf("duplicate asset name %q", v.Name)
 		}
-		assetsByName[v.Name] = v
+		c.assets[v.Name] = v
+		if v.Filter != nil {
+			c.filters.AddFromYAML(v.Name, v.Filter)
+		}
+	}
+	return c, nil
+}
+
+// Process processes all assets in the collection.
+func (c *Collection) Process(outdir string) error {
+	c.Lock()
+	defer c.Unlock()
+	for _, v := range c.assets {
+		if err := v.Process(c.filters, outdir); err != nil {
+			return err
+		}
 	}
 	return nil
 }
 
-func ProcessAssets(outdir string) error {
-	for _, v := range assetsByName {
-		// Load filters.
-		if err := v.LoadFilter(); err != nil {
-			return err
-		}
-		// Process.
-		if err := v.Process(outdir); err != nil {
-			return err
-		}
-	}
-	return nil
+// Get returns an asset by name or nil if there's no such asset.
+func (c *Collection) Get(name string) *Asset {
+	c.Lock()
+	defer c.Unlock()
+	return c.assets[name]
 }
 
 // fillTemplate replaces ":hash" in template with hexadecimal characters of
@@ -85,55 +100,26 @@ func concatFiles(filenames []string) (out []byte, err error) {
 	return out, nil
 }
 
-func (a *Asset) LoadFilter() error {
-	if len(a.Filter) == 0 {
-		return nil
-	}
-	return filters.RegisterAssetName(a.Name, a.Filter[0], a.Filter[1:])
-}
-
-func (a *Asset) Process(outdir string) error {
+func (a *Asset) Process(filters *filters.Collection, outdir string) error {
 	// Concatenate files.
 	b, err := concatFiles(a.Files)
 	if err != nil {
 		return err
 	}
 	// Filter result.
-	if a.Filter != nil && filters.HasFilterForAssetName(a.Name) {
-		s, _, err := filters.FilterTextByAssetName(a.Name, string(b))
-		if err != nil {
-			return err
-		}
-		b = []byte(s)
-
+	s, err := filters.ApplyFilter(a.Name, string(b))
+	if err != nil {
+		return err
 	}
-	// Calculate hash.
-	h := md5.New()
-	h.Write(b)
-	// Make name.
-	a.Filename = fillTemplate(a.OutName, h.Sum(nil))
+	// Make name from hash.
+	a.Filename = fillTemplate(a.OutName, utils.Hash(s))
 	// Check that the result is not empty.
 	if a.Filename == "" {
 		// Use hash for name.
-		a.Filename = string(h.Sum(nil))
+		a.Filename = string(utils.Hash(s))
 	}
 	log.Printf("A %s", a.Filename)
 	// Write to file.
 	outfile := filepath.Join(outdir, filepath.FromSlash(a.Filename))
-	if err := os.MkdirAll(filepath.Dir(outfile), 0755); err != nil {
-		return err
-	}
-	return ioutil.WriteFile(outfile, b, 0644)
-}
-
-func AssetByName(name string) (*Asset, error) {
-	a, ok := assetsByName[name]
-	if !ok {
-		return nil, fmt.Errorf("asset %q not found", name)
-	}
-	return a, nil
-}
-
-func Clean() {
-	assetsByName = make(map[string]*Asset)
+	return utils.WriteStringToFile(outfile, s)
 }

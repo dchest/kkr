@@ -1,5 +1,7 @@
 package filters
 
+// `exec` filter runs commands.
+
 import (
 	"bytes"
 	"fmt"
@@ -8,21 +10,19 @@ import (
 )
 
 func init() {
-	RegisterMaker("exec", MakeExecFilter)
+	Register("exec", func(args []string) Filter {
+		return &Exec{command: args[0], args: args[1:]}
+	})
 }
 
-type execFilter struct {
+type Exec struct {
 	command string
 	args    []string
 }
 
-func MakeExecFilter(args []string) Filter {
-	return &execFilter{command: args[0], args: args[1:]}
-}
+func (f *Exec) Name() string { return fmt.Sprintf("exec %s %q", f.command, f.args) }
 
-func (f *execFilter) Name() string { return fmt.Sprintf("exec %s %q", f.command, f.args) }
-
-func (f *execFilter) Filter(s string) (out string, err error) {
+func (f *Exec) Apply(s string) (out string, err error) {
 	cmd := exec.Command(f.command, f.args...)
 	cmd.Stdin = strings.NewReader(s)
 	var buf bytes.Buffer
