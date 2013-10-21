@@ -168,7 +168,7 @@ func main() {
 		if err != nil {
 			log.Printf("! build error: %s", err)
 		}
-		serve(dir + "/_out") //XXX
+		serve(dir + "/out") //XXX
 	case "clean":
 		err = currentSite.Clean()
 		if err != nil {

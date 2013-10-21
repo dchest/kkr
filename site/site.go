@@ -18,13 +18,13 @@ import (
 )
 
 const (
-	ConfigFileName = "_config.yml"
-	AssetsFileName = "_assets.yml"
+	ConfigFileName = "site.yml"
+	AssetsFileName = "assets.yml"
 
-	OutDirName     = "_out"
-	PostsDirName   = "_posts"
-	PagesDirName   = "_pages"
-	LayoutsDirName = "_layouts"
+	OutDirName     = "out"
+	PostsDirName   = "posts"
+	PagesDirName   = "pages"
+	LayoutsDirName = "layouts"
 
 	DefaultPermalink = "blog/:year/:month/:day/:name/"
 
