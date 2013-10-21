@@ -1,5 +1,9 @@
 package filters
 
+import (
+	"github.com/dchest/htmlmin"
+)
+
 // `htmlmin` is a primitive not-so-correct HTML minimizer filter.
 
 func init() {
@@ -13,31 +17,9 @@ type HTMLMin int
 func (f HTMLMin) Name() string { return "htmlmin" }
 
 func (f HTMLMin) Apply(s string) (out string, err error) {
-	var inTag, inQuote bool
-	var prev byte
-	b := make([]byte, 0, len(s))
-	for _, c := range []byte(s) {
-		ignoreThis := false
-		switch c {
-		case ' ', '\n', '\t':
-			if !inQuote && (prev == ' ' || prev == '\n' || prev == '\t') {
-				ignoreThis = true
-			}
-		case '<':
-			inTag = true
-		case '>':
-			inTag = false
-		case '"':
-			if inQuote {
-				inQuote = false
-			} else if inTag {
-				inQuote = true
-			}
-		}
-		if !ignoreThis {
-			b = append(b, c)
-		}
-		prev = c
+	result, err := htmlmin.Minify([]byte(s))
+	if err != nil {
+		return "", err
 	}
-	return string(b), nil
+	return string(result), nil
 }
