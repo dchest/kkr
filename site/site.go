@@ -6,10 +6,12 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"os"
 	"path/filepath"
-	"sync"
 	"time"
+
+	"github.com/dchest/fsnotify"
 
 	"github.com/dchest/kkr/assets"
 	"github.com/dchest/kkr/filters"
@@ -62,39 +64,75 @@ func readConfig(filename string) (*Config, error) {
 }
 
 type Site struct {
-	sync.Mutex
 	BaseDir     string
 	Config      *Config
 	Assets      *assets.Collection
 	Layouts     *layouts.Collection
 	PageFilters *filters.Collection
+
+	buildQueue  chan bool
+	buildErrors chan error
+
+	watcher *fsnotify.Watcher
 }
 
 func Open(dir string) (s *Site, err error) {
-	// Read config.
-	conf, err := readConfig(filepath.Join(dir, ConfigFileName))
-	if err != nil {
-		return
+	s = &Site{
+		BaseDir:     dir,
+		buildQueue:  make(chan bool),
+		buildErrors: make(chan error),
 	}
-	// Load page filters.
-	pageFilters := filters.NewCollection()
-	for extension, line := range conf.Filters {
-		err = pageFilters.AddFromYAML(extension, line)
-		if err != nil {
-			return
+	if err := s.LoadConfig(); err != nil {
+		return nil, err
+	}
+	if err := s.LoadPageFilters(); err != nil {
+		return nil, err
+	}
+	if err := s.LoadAssets(); err != nil {
+		return nil, err
+	}
+	// Launch builder goroutine.
+	go func() {
+		for {
+			do := <-s.buildQueue
+			if !do {
+				return
+			}
+			s.buildErrors <- s.runBuild()
 		}
+	}()
+	return s, nil
+}
+
+func (s *Site) LoadConfig() error {
+	conf, err := readConfig(filepath.Join(s.BaseDir, ConfigFileName))
+	if err != nil {
+		return err
 	}
+	s.Config = conf
+	return nil
+}
+
+func (s *Site) LoadAssets() error {
 	// Load assets.
 	assets, err := assets.Load(AssetsFileName)
 	if err != nil {
-		return
+		return err
 	}
-	return &Site{
-		BaseDir:     dir,
-		Config:      conf,
-		PageFilters: pageFilters,
-		Assets:      assets,
-	}, nil
+	s.Assets = assets
+	return nil
+}
+
+func (s *Site) LoadPageFilters() error {
+	// Load page filters.
+	pageFilters := filters.NewCollection()
+	for extension, line := range s.Config.Filters {
+		if err := pageFilters.AddFromYAML(extension, line); err != nil {
+			return err
+		}
+	}
+	s.PageFilters = pageFilters
+	return nil
 }
 
 // isIgnoredFile returns true if filename should be ignored
@@ -112,8 +150,6 @@ func (s *Site) isIgnoredFile(filename string) bool {
 }
 
 func (s *Site) LoadPosts() (err error) {
-	s.Lock()
-	defer s.Unlock()
 	postsDir := filepath.Join(s.BaseDir, PostsDirName)
 	posts := make(Posts, 0)
 	err = filepath.Walk(postsDir, func(path string, fi os.FileInfo, err error) error {
@@ -261,7 +297,7 @@ func (s *Site) LoadLayouts() (err error) {
 	return s.Layouts.AddDir(filepath.Join(s.BaseDir, LayoutsDirName))
 }
 
-func (s *Site) Build() (err error) {
+func (s *Site) runBuild() (err error) {
 	// Set site build time.
 	s.Config.Date = time.Now()
 	// Process assets.
@@ -291,23 +327,26 @@ func (s *Site) Build() (err error) {
 	return nil
 }
 
+func (s *Site) Build() error {
+	t := time.Now()
+	defer func() {
+		log.Printf("* Build in %s", time.Now().Sub(t))
+	}()
+
+	s.buildQueue <- true
+	return <-s.buildErrors
+}
+
 func (s *Site) Clean() error {
 	// Remove output directory.
 	return os.RemoveAll(filepath.Join(s.BaseDir, OutDirName))
 }
 
 func (s *Site) LayoutData() interface{} {
-	s.Lock()
-	defer s.Unlock()
-	//return map[string]string {
-	//	"Name": "Whatever",
-	//}
 	return *s.Config
 }
 
 func (s *Site) LayoutFuncs() layouts.FuncMap {
-	s.Lock()
-	defer s.Unlock()
 	// TODO cache this map.
 	return layouts.FuncMap{
 		// `xml` function escapes XML.
@@ -326,5 +365,84 @@ func (s *Site) LayoutFuncs() layouts.FuncMap {
 			}
 			return a.Filename, nil
 		},
+	}
+}
+
+func (s *Site) Serve(addr string) error {
+	outDir := filepath.Join(s.BaseDir, OutDirName)
+	log.Printf("Serving at %s. Press Ctrl+C to quit.\n", addr)
+	return http.ListenAndServe(addr, http.FileServer(http.Dir(outDir)))
+}
+
+func (s *Site) getWatchedDirs() (dirs []string, err error) {
+	// Watch every subdirectory of site except for output directory.
+	outDir := filepath.Join(s.BaseDir, OutDirName)
+	dirs = make([]string, 0)
+	err = filepath.Walk(s.BaseDir, func(path string, fi os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if !fi.IsDir() {
+			return nil // skip non-directories
+		}
+		if path == outDir {
+			return filepath.SkipDir // skip out directory and its subdirectories
+		}
+		dirs = append(dirs, path)
+		return nil
+	})
+	return
+}
+
+func (s *Site) isWatcherIgnored(name string) bool {
+	if filepath.Base(name) == OutDirName {
+		return true
+	}
+	return false
+}
+
+func (s *Site) StartWatching() (err error) {
+	watcher, err := fsnotify.NewWatcher()
+	if err != nil {
+		return err
+	}
+
+	go func() {
+		for {
+			select {
+			case ev := <-watcher.Event:
+				if s.isWatcherIgnored(ev.Name) {
+					break
+				}
+				log.Println("W event:", ev)
+				if err := s.Build(); err != nil {
+					log.Printf("! build error: %s", err)
+				}
+			case err := <-watcher.Error:
+				log.Println("! watcher error:", err)
+			}
+		}
+	}()
+
+	watchedDirs, err := s.getWatchedDirs()
+	if err != nil {
+		return err
+	}
+	for _, dir := range watchedDirs {
+		if err := watcher.Watch(dir); err != nil {
+			return err
+		}
+	}
+
+	s.watcher = watcher
+
+	log.Printf("* Watching for changes.")
+	return nil
+}
+
+func (s *Site) StopWatching() {
+	if s.watcher != nil {
+		s.watcher.Close()
+		s.watcher = nil
 	}
 }
