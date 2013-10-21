@@ -7,8 +7,6 @@ import (
 	"os"
 	"runtime/pprof"
 
-	//"github.com/dchest/fsnotify"
-
 	"github.com/dchest/kkr/site"
 )
 
@@ -17,8 +15,8 @@ var currentSite *site.Site
 var (
 	fHttp       = flag.String("http", "localhost:8080", "address and port to use for serving")
 	fWatch      = flag.Bool("watch", false, "watch for changes")
-	fNoFilters  = flag.Bool("nofilters", false, "disable filters")
-	fNoRemove   = flag.Bool("noremove", false, "don't delete output directory before building")
+	//fNoFilters  = flag.Bool("nofilters", false, "disable filters")
+	//fNoRemove   = flag.Bool("noremove", false, "don't delete output directory before building")
 	fCPUProfile = flag.String("cpuprofile", "", "(debug) write CPU profile to file")
 )
 
