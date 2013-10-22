@@ -5,6 +5,7 @@ import (
 	"encoding/xml"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
@@ -23,10 +24,11 @@ const (
 	ConfigFileName = "site.yml"
 	AssetsFileName = "assets.yml"
 
-	OutDirName     = "out"
-	PostsDirName   = "posts"
-	PagesDirName   = "pages"
-	LayoutsDirName = "layouts"
+	OutDirName      = "out"
+	PostsDirName    = "posts"
+	PagesDirName    = "pages"
+	LayoutsDirName  = "layouts"
+	IncludesDirName = "includes"
 
 	DefaultPermalink = "blog/:year/:month/:day/:name/"
 
@@ -75,6 +77,7 @@ type Site struct {
 	Assets      *assets.Collection
 	Layouts     *layouts.Collection
 	PageFilters *filters.Collection
+	Includes    map[string]string
 
 	buildQueue  chan bool
 	buildErrors chan error
@@ -89,13 +92,8 @@ func Open(dir string) (s *Site, err error) {
 		buildQueue:  make(chan bool),
 		buildErrors: make(chan error),
 	}
+	// Try loading config.
 	if err := s.LoadConfig(); err != nil {
-		return nil, err
-	}
-	if err := s.LoadPageFilters(); err != nil {
-		return nil, err
-	}
-	if err := s.LoadAssets(); err != nil {
 		return nil, err
 	}
 	// Launch builder goroutine.
@@ -141,6 +139,37 @@ func (s *Site) LoadPageFilters() error {
 	}
 	s.PageFilters = pageFilters
 	return nil
+}
+
+func (s *Site) LoadLayouts() (err error) {
+	log.Printf("* Loading layouts.")
+	s.Layouts = layouts.NewCollection(s)
+	return s.Layouts.AddDir(filepath.Join(s.BaseDir, LayoutsDirName))
+}
+
+func (s *Site) LoadIncludes() (err error) {
+	log.Printf("* Loading includes.")
+	s.Includes = make(map[string]string)
+	includesDir := filepath.Join(s.BaseDir, IncludesDirName)
+	return filepath.Walk(includesDir, func(path string, fi os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		relname, err := filepath.Rel(includesDir, path)
+		if err != nil {
+			return err
+		}
+		if fi.IsDir() {
+			return nil
+		}
+		log.Printf("I %s", relname)
+		b, err := ioutil.ReadFile(path)
+		if err != nil {
+			return err
+		}
+		s.Includes[relname] = string(b)
+		return nil
+	})
 }
 
 // isIgnoredFile returns true if filename should be ignored
@@ -304,12 +333,6 @@ func (s *Site) CopyFile(filename string) error {
 	return nil
 }
 
-func (s *Site) LoadLayouts() (err error) {
-	log.Printf("* Loading layouts.")
-	s.Layouts = layouts.NewCollection(s)
-	return s.Layouts.AddDir(filepath.Join(s.BaseDir, LayoutsDirName))
-}
-
 func (s *Site) runBuild() (err error) {
 	if s.cleanBeforeBuilding {
 		err = s.Clean()
@@ -319,6 +342,22 @@ func (s *Site) runBuild() (err error) {
 	}
 	// Set site build time.
 	s.Config.Date = time.Now()
+	// Reload config.
+	if err := s.LoadConfig(); err != nil {
+		return err
+	}
+	// Load page filters.
+	if err := s.LoadPageFilters(); err != nil {
+		return err
+	}
+	// Load assets.
+	if err := s.LoadAssets(); err != nil {
+		return err
+	}
+	// Load includes.
+	if err := s.LoadIncludes(); err != nil {
+		return err
+	}
 	// Process assets.
 	err = s.Assets.Process(filepath.Join(s.BaseDir, OutDirName))
 	if err != nil {
@@ -387,6 +426,14 @@ func (s *Site) LayoutFuncs() layouts.FuncMap {
 				return "", fmt.Errorf("asset %q not found", name)
 			}
 			return a.Filename, nil
+		},
+		// `include` function returns text from include file.
+		"include": func(name string) (string, error) {
+			out, ok := s.Includes[name]
+			if !ok {
+				return "", fmt.Errorf("include %q not found", name)
+			}
+			return out, nil
 		},
 	}
 }
