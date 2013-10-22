@@ -359,6 +359,7 @@ func (s *Site) runBuild() (err error) {
 		return err
 	}
 	// Process assets.
+	log.Printf("* Processing assets.")
 	err = s.Assets.Process(filepath.Join(s.BaseDir, OutDirName))
 	if err != nil {
 		return
