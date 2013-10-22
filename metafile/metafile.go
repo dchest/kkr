@@ -5,12 +5,13 @@ import (
 	"bytes"
 	"io"
 	"os"
+	"strings"
 	"sync"
 
 	"github.com/dchest/goyaml"
 )
 
-const metaSeparator = "---\n"
+const metaSeparator = "---"
 
 type File struct {
 	sync.Mutex
@@ -55,8 +56,8 @@ func (m *File) readMeta() error {
 		return nil
 	}
 	// Check if we have a meta file.
-	p, err := m.r.Peek(len(metaSeparator))
-	if (err != nil && err == io.EOF) || string(p) != metaSeparator {
+	p, err := m.r.Peek(len(metaSeparator) + 1)
+	if (err != nil && err == io.EOF) || strings.TrimSpace(string(p)) != metaSeparator {
 		m.metaRead = true
 		m.hasMeta = false
 		return nil
@@ -66,13 +67,14 @@ func (m *File) readMeta() error {
 	}
 
 	// Read meta.
+	// Skip starting separator
 	head, err := m.r.ReadString('\n')
 	if err != nil {
 		return err
 	}
-	if head != metaSeparator {
-		// Shouldn't happen.
-		panic("programmer error: head is not equal to meta separator")
+	if strings.TrimSpace(head) != metaSeparator {
+		// This shouldn't happen, since we peeked into reader and saw a separator.
+		panic("programmer error: read wrong meta separator")
 	}
 	buf := bytes.NewBuffer(nil)
 	for {
@@ -81,7 +83,7 @@ func (m *File) readMeta() error {
 		if err != nil {
 			return err
 		}
-		if s == metaSeparator {
+		if len(s) > 0 && strings.TrimSpace(s) == metaSeparator {
 			break
 		}
 		buf.WriteString(s)
