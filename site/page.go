@@ -45,6 +45,13 @@ func LoadPage(basedir, filename string) (p *Page, err error) {
 		return
 	}
 
+	// If page is a Markdown file, set its markup meta to Markdown (to
+	// process content) and replace output file extension with .html.
+	if utils.HasFileExt(filename, MarkdownExtensions) {
+		meta["markup"] = "markdown"
+		filename = utils.ReplaceFileExt(filename, ".html")
+	}
+
 	if markup, ok := meta["markup"]; ok {
 		if markup != "markdown" {
 			err = fmt.Errorf("unknown markup: %q", markup)

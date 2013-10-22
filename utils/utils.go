@@ -5,14 +5,13 @@ import (
 	"crypto/md5"
 	"fmt"
 	"github.com/dchest/goyaml"
-	"path"
-	"io/ioutil"
 	"io"
+	"io/ioutil"
 	"os"
+	"path"
 	"path/filepath"
 	"time"
 )
-
 
 // UnmarshallYAMLFile reads YAML file and unmarshalls it into data.
 func UnmarshallYAMLFile(filename string, data interface{}) error {
@@ -92,3 +91,21 @@ func DirExist(path string) bool {
 	return fi.IsDir()
 }
 
+// Returns true if filename has one of the given extension.
+// Extensions must start with dot.
+func HasFileExt(filename string, extensions []string) bool {
+	ext := filepath.Ext(filename)
+	for _, v := range extensions {
+		if v == ext {
+			return true
+		}
+	}
+	return false
+}
+
+// ReplaceExtension replaces file extension with the given string.
+// Extension must start with dot.
+func ReplaceFileExt(filename string, ext string) string {
+	oldext := filepath.Ext(filename)
+	return filename[:len(filename)-len(oldext)] + ext
+}

@@ -98,15 +98,3 @@ func (pp Posts) Swap(i, j int)      { pp[i], pp[j] = pp[j], pp[i] }
 func (pp Posts) Sort() {
 	sort.Sort(pp)
 }
-
-var postExtensions = []string{".html", ".htm", ".md", ".markdown"}
-
-func isPostFileName(filename string) bool {
-	ext := filepath.Ext(filename)
-	for _, v := range postExtensions {
-		if v == ext {
-			return true
-		}
-	}
-	return false
-}

@@ -34,6 +34,12 @@ const (
 	DefaultPageLayout = "default"
 )
 
+var (
+	HTMLExtensions     = []string{".html", ".htm"}
+	MarkdownExtensions = []string{".markdown", ".md"}
+	PostExtensions     = []string{".html", ".htm", ".markdown", ".md"}
+)
+
 type Config struct {
 	// Loadable from YAML.
 	Name       string                 `yaml:"name"`
@@ -167,7 +173,7 @@ func (s *Site) LoadPosts() (err error) {
 		if s.isIgnoredFile(relname) {
 			return nil // skip ignored files
 		}
-		if !isPostFileName(relname) {
+		if !utils.HasFileExt(relname, PostExtensions) {
 			return nil
 		}
 		p, err := LoadPost(postsDir, relname, s.Config.Permalink)
