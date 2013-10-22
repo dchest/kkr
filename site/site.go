@@ -211,6 +211,7 @@ func (s *Site) RenderPost(p *Post) error {
 }
 
 func (s *Site) RenderPosts() error {
+	log.Printf("* Rendering posts.")
 	for _, p := range s.Config.Posts {
 		if err := s.RenderPost(p); err != nil {
 			return err
@@ -220,6 +221,7 @@ func (s *Site) RenderPosts() error {
 }
 
 func (s *Site) RenderPage(pagesDir, relname string) error {
+	log.Printf("P < %s\n", relname)
 	p, err := LoadPage(pagesDir, relname)
 	if err != nil {
 		if IsNotPage(err) {
@@ -233,7 +235,7 @@ func (s *Site) RenderPage(pagesDir, relname string) error {
 	if err != nil {
 		return err
 	}
-	log.Printf("P %s → %s\n", relname, filepath.Join(OutDirName, p.Filename))
+	log.Printf("P > %s\n", filepath.Join(OutDirName, p.Filename))
 	// Apply filter.
 	data, err = s.PageFilters.ApplyFilter(filepath.Ext(p.Filename), data)
 	if err != nil {
@@ -244,6 +246,7 @@ func (s *Site) RenderPage(pagesDir, relname string) error {
 }
 
 func (s *Site) RenderPages() error {
+	log.Printf("* Rendering pages")
 	inDir := filepath.Join(s.BaseDir, PagesDirName)
 	return filepath.Walk(inDir, func(path string, fi os.FileInfo, err error) error {
 		if err != nil {
@@ -278,7 +281,7 @@ func (s *Site) CopyFile(filename string) error {
 	// Try making hard link instead of copying.
 	if err := os.Link(inFile, outFile); err == nil {
 		// Succeeded.
-		log.Printf("H %s → %s\n", filename, filepath.Join(OutDirName, filename))
+		log.Printf("H > %s\n", filepath.Join(OutDirName, filename))
 		return nil
 	}
 
@@ -297,11 +300,12 @@ func (s *Site) CopyFile(filename string) error {
 	if err != nil {
 		return err
 	}
-	log.Printf("C %s → %s\n", filename, filepath.Join(OutDirName, filename))
+	log.Printf("C > %s\n", filename, filepath.Join(OutDirName, filename))
 	return nil
 }
 
 func (s *Site) LoadLayouts() (err error) {
+	log.Printf("* Loading layouts.")
 	s.Layouts = layouts.NewCollection(s)
 	return s.Layouts.AddDir(filepath.Join(s.BaseDir, LayoutsDirName))
 }
