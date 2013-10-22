@@ -13,10 +13,10 @@ import (
 var currentSite *site.Site
 
 var (
-	fHttp       = flag.String("http", "localhost:8080", "address and port to use for serving")
-	fWatch      = flag.Bool("watch", false, "watch for changes")
+	fHttp  = flag.String("http", "localhost:8080", "address and port to use for serving")
+	fWatch = flag.Bool("watch", false, "watch for changes")
 	//fNoFilters  = flag.Bool("nofilters", false, "disable filters")
-	//fNoRemove   = flag.Bool("noremove", false, "don't delete output directory before building")
+	fNoClean    = flag.Bool("noclean", false, "don't delete output directory before building")
 	fCPUProfile = flag.String("cpuprofile", "", "(debug) write CPU profile to file")
 )
 
@@ -71,6 +71,7 @@ func main() {
 			log.Fatalf("! Cannot start watcher: %s", err)
 		}
 	}
+	currentSite.SetCleanBeforeBuilding(!*fNoClean)
 
 	switch command {
 	case "build":

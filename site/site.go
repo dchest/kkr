@@ -73,7 +73,8 @@ type Site struct {
 	buildQueue  chan bool
 	buildErrors chan error
 
-	watcher *fsnotify.Watcher
+	watcher             *fsnotify.Watcher
+	cleanBeforeBuilding bool
 }
 
 func Open(dir string) (s *Site, err error) {
@@ -298,6 +299,9 @@ func (s *Site) LoadLayouts() (err error) {
 }
 
 func (s *Site) runBuild() (err error) {
+	if s.cleanBeforeBuilding {
+		s.Clean()
+	}
 	// Set site build time.
 	s.Config.Date = time.Now()
 	// Process assets.
@@ -339,6 +343,7 @@ func (s *Site) Build() error {
 
 func (s *Site) Clean() error {
 	// Remove output directory.
+	log.Printf("* Cleaning.")
 	return os.RemoveAll(filepath.Join(s.BaseDir, OutDirName))
 }
 
@@ -445,4 +450,8 @@ func (s *Site) StopWatching() {
 		s.watcher.Close()
 		s.watcher = nil
 	}
+}
+
+func (s *Site) SetCleanBeforeBuilding(clean bool) {
+	s.cleanBeforeBuilding = clean
 }
