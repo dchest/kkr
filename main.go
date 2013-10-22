@@ -86,7 +86,7 @@ func main() {
 	case "serve":
 		err = currentSite.Build()
 		if err != nil {
-			log.Printf("! build error: %s", err)
+			log.Fatalf("! build error: %s", err)
 		}
 		err = currentSite.Serve(*fHttp)
 		if err != nil {
