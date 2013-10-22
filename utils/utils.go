@@ -64,9 +64,13 @@ func WriteStringToFile(filename, data string) error {
 
 var dateTemplates = []string{
 	"2006-01-02 15:04",
+	"2006-01-02 15:04 -07:00",
+	"2006-01-02 15:04:05 -07:00",
 	time.RFC3339,
 	time.RFC822,
 	time.UnixDate,
+	"2006.01.02 15:04",
+	"2006.01.02",
 	"2006-01-02",
 }
 
