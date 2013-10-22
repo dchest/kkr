@@ -22,7 +22,7 @@ type Page struct {
 func (p *Page) Meta() map[string]interface{} { return p.meta }
 func (p *Page) Content() string              { return p.content }
 
-var NotPageError = errors.New("not a page")
+var NotPageError = errors.New("not a page or post")
 
 func IsNotPage(err error) bool {
 	return err == NotPageError

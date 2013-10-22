@@ -178,12 +178,12 @@ func (s *Site) LoadPosts() (err error) {
 		if !utils.HasFileExt(relname, PostExtensions) {
 			return nil
 		}
+		log.Printf("B < %s\n", relname)
 		p, err := LoadPost(postsDir, relname, s.Config.Permalink)
 		if err != nil {
 			return err
 		}
 		posts = append(posts, p)
-		log.Printf("B < %s\n", relname)
 		return nil
 	})
 	if err != nil {
@@ -346,14 +346,17 @@ func (s *Site) runBuild() (err error) {
 	return nil
 }
 
-func (s *Site) Build() error {
+func (s *Site) Build() (err error) {
 	t := time.Now()
-	defer func() {
-		log.Printf("* Build in %s", time.Now().Sub(t))
-	}()
 
 	s.buildQueue <- true
-	return <-s.buildErrors
+	err = <-s.buildErrors
+	if err != nil {
+		return err
+	}
+
+	log.Printf("* Built in %s", time.Now().Sub(t))
+	return nil
 }
 
 func (s *Site) Clean() error {

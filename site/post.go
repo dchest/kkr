@@ -44,7 +44,7 @@ func LoadPost(basedir, filename, outNameTemplate string) (p *Post, err error) {
 				return nil, err
 			}
 		default:
-			return nil, errors.New("'date' is not string")
+			return nil, errors.New("'date' is not a string")
 		}
 	}
 
