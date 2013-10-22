@@ -121,6 +121,7 @@ func (s *Site) LoadConfig() error {
 }
 
 func (s *Site) LoadAssets() error {
+	log.Printf("* Loading assets.")
 	// Load assets.
 	assets, err := assets.Load(AssetsFileName)
 	if err != nil {
@@ -157,6 +158,7 @@ func (s *Site) isIgnoredFile(filename string) bool {
 }
 
 func (s *Site) LoadPosts() (err error) {
+	log.Printf("* Loading posts.")
 	postsDir := filepath.Join(s.BaseDir, PostsDirName)
 	posts := make(Posts, 0)
 	err = filepath.Walk(postsDir, func(path string, fi os.FileInfo, err error) error {
@@ -306,7 +308,10 @@ func (s *Site) LoadLayouts() (err error) {
 
 func (s *Site) runBuild() (err error) {
 	if s.cleanBeforeBuilding {
-		s.Clean()
+		err = s.Clean()
+		if err != nil {
+			return
+		}
 	}
 	// Set site build time.
 	s.Config.Date = time.Now()

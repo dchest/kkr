@@ -5,6 +5,7 @@ package filters
 import (
 	"bytes"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 )
@@ -26,10 +27,13 @@ func (f *Exec) Apply(s string) (out string, err error) {
 	cmd := exec.Command(f.command, f.args...)
 	cmd.Stdin = strings.NewReader(s)
 	var buf bytes.Buffer
+	var errbuf bytes.Buffer
 	cmd.Stdout = &buf
+	cmd.Stderr = &errbuf
 	err = cmd.Run()
 	if err != nil {
-		return "", err
+		errbuf.WriteTo(os.Stderr)
+		return "", fmt.Errorf("`%s` error: %s", f.Name(), err)
 	}
 	return buf.String(), nil
 }
