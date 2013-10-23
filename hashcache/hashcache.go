@@ -1,3 +1,9 @@
+// Copyright 2013 Dmitry Chestnykh. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+//TODO: this package in currently unused, but may be used later.
+
 // Package hashcache tells whether the given content at the path was already seen by it.
 package hashcache
 

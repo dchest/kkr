@@ -1,10 +1,15 @@
+// Copyright 2013 Dmitry Chestnykh. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
 package filters
+
+// `htmlmin` is a primitive not-so-correct HTML minimizer filter.
 
 import (
 	"github.com/dchest/htmlmin"
 )
 
-// `htmlmin` is a primitive not-so-correct HTML minimizer filter.
 
 func init() {
 	Register("htmlmin", func(args []string) Filter {

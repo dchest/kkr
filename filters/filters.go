@@ -1,3 +1,8 @@
+// Copyright 2013 Dmitry Chestnykh. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.
+
+// Package filters implements text filtering.
 package filters
 
 import (

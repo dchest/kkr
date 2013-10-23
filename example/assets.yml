@@ -1,7 +1,6 @@
 ---
 - name: global-style
   files: [assets/css/main.css, assets/css/blog.css]
-  #filter: [exec, "yui-compressor", "--type", "css"]
   separator: "\n/* ---- */\n"
   outname: /assets/global-:hash.css
 
@@ -13,5 +12,6 @@
 
 - name: hello-js
   files: [assets/js/hello.js]
-  #filter: [exec, "yui-compressor", "--type", "js"]
+  # Uncomment to enable compressing of output:
+  # filter: [exec, "yui-compressor", "--type", "js"]
   outname: /assets/hello-:hash.js
