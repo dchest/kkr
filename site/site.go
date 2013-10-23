@@ -486,6 +486,18 @@ func (s *Site) StartWatching() (err error) {
 					break
 				}
 				log.Println("W event:", ev)
+				// Wait for more events a bit.
+			waiting:
+				for {
+					select {
+					case ev := <-watcher.Event:
+						log.Println("W +event:", ev)
+					case err := <-watcher.Error:
+						log.Println("! watcher error:", err)
+					case <-time.After(100 * time.Millisecond):
+						break waiting
+					}
+				}
 				if err := s.Build(); err != nil {
 					log.Printf("! build error: %s", err)
 				}
