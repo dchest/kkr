@@ -15,10 +15,11 @@ import (
 )
 
 type Asset struct {
-	Name    string      `yaml:"name"`
-	Filter  interface{} `yaml:"filter,omitempty"`
-	Files   []string    `yaml:"files"`
-	OutName string      `yaml:"outname"`
+	Name      string      `yaml:"name"`
+	Filter    interface{} `yaml:"filter,omitempty"`
+	Files     []string    `yaml:"files"`
+	Separator string      `yaml:"separator,omitempty"`
+	OutName   string      `yaml:"outname"`
 
 	Filename string
 }
@@ -89,20 +90,24 @@ func fillTemplate(template string, hash []byte) string {
 	return strings.Replace(template, ":hash", hs, -1)
 }
 
-func concatFiles(filenames []string) (out []byte, err error) {
-	for _, f := range filenames {
+func concatFiles(filenames []string,  separator string) (out []byte, err error) {
+	sep := []byte(separator)
+	for i, f := range filenames {
 		b, err := ioutil.ReadFile(f)
 		if err != nil {
 			return nil, err
 		}
 		out = append(out, b...)
+		if i != len(filenames)-1 {
+			out = append(out, sep...)
+		}
 	}
 	return out, nil
 }
 
 func (a *Asset) Process(filters *filters.Collection, outdir string) error {
 	// Concatenate files.
-	b, err := concatFiles(a.Files)
+	b, err := concatFiles(a.Files, a.Separator)
 	if err != nil {
 		return err
 	}
