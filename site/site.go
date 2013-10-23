@@ -340,12 +340,12 @@ func (s *Site) runBuild() (err error) {
 			return
 		}
 	}
-	// Set site build time.
-	s.Config.Date = time.Now()
 	// Reload config.
 	if err := s.LoadConfig(); err != nil {
 		return err
 	}
+	// Set site build time.
+	s.Config.Date = time.Now()
 	// Load page filters.
 	if err := s.LoadPageFilters(); err != nil {
 		return err
