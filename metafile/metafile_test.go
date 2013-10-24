@@ -17,8 +17,8 @@ const (
 	metaValue   = "Hello world"
 	metaContent = "This is\nsome content"
 
-	fileWithMeta = metaSeparator + metaKey + ": " + metaValue + "\n" + metaSeparator + metaContent
-	fileNoMeta   = `---This isn't meta---`
+	fileWithMeta = metaSeparator + "\n" + metaKey + ": " + metaValue + "\n" + metaSeparator + "\n" + metaContent
+	fileNoMeta   = `This isn't meta`
 )
 
 func WriteTempFile(s string) (name string, err error) {
