@@ -8,7 +8,7 @@ import (
 
 // TODO remove once Go 1.2 is released.
 
-// These are comparison functions available to text/template
+// These are comparison functions available in text/template
 // since Go 1.2.
 // Copied from http://tip.golang.org/src/pkg/text/template/funcs.go
 
