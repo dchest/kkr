@@ -1,4 +1,4 @@
-// Copyright 2013 Dmitry Chestnykh. All rights reserved.
+// Copyright 2013 Dmitry Chestnykh. All rights reserved.s
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -29,11 +29,12 @@ const (
 	ConfigFileName = "site.yml"
 	AssetsFileName = "assets.yml"
 
-	OutDirName      = "out"
-	PostsDirName    = "posts"
-	PagesDirName    = "pages"
-	LayoutsDirName  = "layouts"
+	AssetsDirName   = "assets" // just a convention, currently used for watching only
 	IncludesDirName = "includes"
+	LayoutsDirName  = "layouts"
+	PagesDirName    = "pages"
+	PostsDirName    = "posts"
+	OutDirName      = "out"
 
 	DefaultPermalink = "blog/:year/:month/:day/:name/"
 
@@ -453,20 +454,33 @@ func (s *Site) Serve(addr string) error {
 func (s *Site) getWatchedDirs() (dirs []string, err error) {
 	// Watch every subdirectory of site except for output directory.
 	outDir := filepath.Join(s.BaseDir, OutDirName)
+	// Only watch specific directories.
+	rootDirs := []string{
+		AssetsDirName,
+		IncludesDirName,
+		LayoutsDirName,
+		PagesDirName,
+		PostsDirName,
+	}
 	dirs = make([]string, 0)
-	err = filepath.Walk(s.BaseDir, func(path string, fi os.FileInfo, err error) error {
+	for _, rootDir := range rootDirs {
+		err = filepath.Walk(filepath.Join(s.BaseDir, rootDir), func(path string, fi os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if !fi.IsDir() {
+				return nil // skip non-directories
+			}
+			if path == outDir {
+				return filepath.SkipDir // skip out directory and its subdirectories
+			}
+			dirs = append(dirs, path)
+			return nil
+		})
 		if err != nil {
-			return err
+			return nil, err
 		}
-		if !fi.IsDir() {
-			return nil // skip non-directories
-		}
-		if path == outDir {
-			return filepath.SkipDir // skip out directory and its subdirectories
-		}
-		dirs = append(dirs, path)
-		return nil
-	})
+	}
 	return
 }
 
