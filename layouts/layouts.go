@@ -50,7 +50,7 @@ func NewCollection(context SiteContext) (*Collection) {
 }
 
 func (c *Collection) newLayout(name string, parentName string, content string) (l *Layout, err error) {
-	t, err := template.New(name).Funcs(template.FuncMap(c.context.LayoutFuncs())).Parse(content)
+	t, err := template.New(name).Funcs(go12Funcs).Funcs(template.FuncMap(c.context.LayoutFuncs())).Parse(content)
 	if err != nil {
 		return nil, err
 	}
