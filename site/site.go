@@ -481,6 +481,8 @@ func (s *Site) getWatchedDirs() (dirs []string, err error) {
 			return nil, err
 		}
 	}
+	// Add BaseDir.
+	dirs = append(dirs, s.BaseDir)
 	return
 }
 
