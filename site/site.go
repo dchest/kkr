@@ -157,7 +157,7 @@ func (s *Site) LoadIncludes() (err error) {
 	log.Printf("* Loading includes.")
 	s.Includes = make(map[string]string)
 	includesDir := filepath.Join(s.BaseDir, IncludesDirName)
-	return filepath.Walk(includesDir, func(path string, fi os.FileInfo, err error) error {
+	err = filepath.Walk(includesDir, func(path string, fi os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -176,6 +176,10 @@ func (s *Site) LoadIncludes() (err error) {
 		s.Includes[relname] = string(b)
 		return nil
 	})
+	if err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return nil
 }
 
 // isIgnoredFile returns true if filename should be ignored
@@ -221,7 +225,7 @@ func (s *Site) LoadPosts() (err error) {
 		posts = append(posts, p)
 		return nil
 	})
-	if err != nil {
+	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
 	posts.Sort()
@@ -478,6 +482,10 @@ func (s *Site) getWatchedDirs() (dirs []string, err error) {
 			return nil
 		})
 		if err != nil {
+			if os.IsNotExist(err) {
+				err = nil
+				continue
+			}
 			return nil, err
 		}
 	}
