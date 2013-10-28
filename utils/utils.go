@@ -44,7 +44,7 @@ func CleanPermalink(s string) string {
 // or if there was no slash, returns the original string.
 func StripEndSlash(s string) string {
 	// Remove ending slash.
-	if s[len(s)-1] == '/' {
+	if len(s) > 0 && s[len(s)-1] == '/' {
 		s = s[:len(s)-1]
 	}
 	return s
