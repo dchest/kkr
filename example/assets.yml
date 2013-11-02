@@ -2,6 +2,7 @@
 - name: global-style
   files: [assets/css/main.css, assets/css/blog.css]
   separator: "\n/* ---- */\n"
+  filter: cssmin
   outname: /assets/global-:hash.css
 
 ## Example of using LESS:
@@ -12,6 +13,8 @@
 
 - name: hello-js
   files: [assets/js/hello.js]
-  # Uncomment to enable compressing of output:
+  # Uncomment to enable compressing of output with YUI Compressor:
   # filter: [exec, "yui-compressor", "--type", "js"]
+  filter: jsmin
   outname: /assets/hello-:hash.js
+

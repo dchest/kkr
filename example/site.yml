@@ -4,5 +4,5 @@ permalink: /blog/:year/:month/:day/:name/
 url: http://www.example.com
 
 filters:
-        .html: htmlmin
+        .html: [htmlmin, styles, scripts]
         .txt: [exec, fold, "-sw 60"]  # comment this out on Windows
