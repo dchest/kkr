@@ -4,24 +4,24 @@
 
 package filters
 
-// `jsmin` minifies JavaScript.
+// `htmljsmin` is htmlmin which also minifies inline scripts with jsmin.
 
 import (
-	"github.com/dchest/jsmin"
+	"github.com/dchest/htmlmin"
 )
 
 func init() {
-	Register("jsmin", func(args []string) Filter {
-		return JSMin(0)
+	Register("htmljsmin", func(args []string) Filter {
+		return HTMLJSMin(0)
 	})
 }
 
-type JSMin int
+type HTMLJSMin int
 
-func (f JSMin) Name() string { return "jsmin" }
+func (f HTMLJSMin) Name() string { return "htmljsmin" }
 
-func (f JSMin) Apply(s string) (out string, err error) {
-	result, err := jsmin.Minify([]byte(s))
+func (f HTMLJSMin) Apply(s string) (out string, err error) {
+	result, err := htmlmin.Minify([]byte(s), &htmlmin.Options{MinifyScripts: true})
 	if err != nil {
 		return "", err
 	}
