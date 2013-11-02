@@ -22,7 +22,7 @@ type HTMLMin int
 func (f HTMLMin) Name() string { return "htmlmin" }
 
 func (f HTMLMin) Apply(s string) (out string, err error) {
-	result, err := htmlmin.Minify([]byte(s))
+	result, err := htmlmin.Minify([]byte(s), nil)
 	if err != nil {
 		return "", err
 	}
