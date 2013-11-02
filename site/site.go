@@ -58,9 +58,14 @@ type Config struct {
 	Properties map[string]interface{} `yaml:"properties"`
 
 	// Generated.
-	Date  time.Time
-	Posts Posts `yaml:"-"`
-	//TODO Categories
+	Date    time.Time
+	Posts   Posts            `yaml:"-"`
+	Tags    map[string]Posts `yaml:"-"`
+	TagList []string         `yaml:"-"`
+}
+
+func (c Config) PostsByTag(tagName string) Posts {
+	return c.Tags[tagName]
 }
 
 func readConfig(filename string) (*Config, error) {
@@ -228,8 +233,22 @@ func (s *Site) LoadPosts() (err error) {
 	if err != nil && !os.IsNotExist(err) {
 		return err
 	}
+	// Sort and add to config.
 	posts.Sort()
 	s.Config.Posts = posts
+	// Distribute by tags.
+	tags := make(map[string]Posts)
+	for _, p := range posts {
+		for _, tagName := range p.Tags {
+			tags[tagName] = append(tags[tagName], p)
+		}
+	}
+	tagList := make([]string, 0, len(tags))
+	for tagName := range tags {
+		tagList = append(tagList, tagName)
+	}
+	s.Config.TagList = tagList
+	s.Config.Tags = tags
 	return nil
 }
 

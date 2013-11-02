@@ -18,6 +18,7 @@ import (
 
 type Post struct {
 	Page
+	Tags []string
 	Date time.Time
 }
 
@@ -70,6 +71,25 @@ func LoadPost(basedir, filename, outNameTemplate string) (p *Post, err error) {
 	page.meta["url"] = url
 	page.meta["id"] = basefile
 
+	// Get tags.
+	var tags []string
+	if mt, ok := page.meta["tags"]; ok {
+		switch t := mt.(type) {
+		case string:
+			tags = strings.Split(t, ",")
+			for i, v := range tags {
+				tags[i] = strings.TrimSpace(v)
+			}
+		case []interface{}:
+			tags = make([]string, 0, len(t))
+			for _, v := range t {
+				tags = append(tags, v.(string))
+			}
+		default:
+			return nil, errors.New("'tags' is not an array of strings or a string")
+		}
+	}
+
 	// Add index.html if ends with slash.
 	if outname[len(outname)-1] == '/' {
 		outname += "index.html"
@@ -79,6 +99,7 @@ func LoadPost(basedir, filename, outNameTemplate string) (p *Post, err error) {
 	return &Post{
 		Page: *page,
 		Date: date,
+		Tags: tags,
 	}, nil
 }
 

@@ -1,0 +1,14 @@
+---
+layout: blog
+title: Posts by Tag
+---
+
+<h1>Posts by Tags</h1>
+{{range $index, $tag := .Site.TagList}}
+<h2>{{$tag}}</h2>
+<ul>
+  {{range $.Site.PostsByTag $tag}}
+  <li><a href="{{.Meta.url}}">{{.Meta.title}}</a></li>
+  {{end}}
+</ul>
+{{end}}
