@@ -1,7 +1,7 @@
 ---
 - name: additional-style
   files: [assets/css/additional.css]
-  outname: $   # store output in buffer and use it later by @additional-style name.
+  outname: $   # remember output and use it later by $additional-style name.
 
 - name: global-style
   files: [assets/css/main.css, assets/css/blog.css, $additional-style]
