@@ -358,7 +358,7 @@ func (s *Site) CopyFile(filename string) error {
 	if err != nil {
 		return err
 	}
-	log.Printf("C > %s\n", filename, filepath.Join(OutDirName, filename))
+	log.Printf("C > %s\n", filepath.Join(OutDirName, filename))
 	return nil
 }
 
