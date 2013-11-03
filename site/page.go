@@ -63,6 +63,11 @@ func LoadPage(basedir, filename string) (p *Page, err error) {
 		content = blackfriday.MarkdownCommon(content)
 	}
 
+	// Change filename if there's 'permalink'.
+	if permalink, ok := meta["permalink"]; ok {
+		filename = filepath.FromSlash(permalink.(string))
+	}
+
 	url := utils.CleanPermalink(filepath.ToSlash(filename))
 	meta["url"] = url
 	meta["id"] = filepath.ToSlash(filename)
