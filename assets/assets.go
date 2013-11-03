@@ -13,11 +13,12 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 
 	"github.com/dchest/kkr/filters"
 	"github.com/dchest/kkr/utils"
 )
+
+const bufSigil = '$'
 
 type Asset struct {
 	Name      string      `yaml:"name"`
@@ -27,10 +28,12 @@ type Asset struct {
 	OutName   string      `yaml:"outname"`
 
 	Filename string
+
+	output    string // if OutName is "$", the content of output is store here instead of the file
+	processed bool
 }
 
 type Collection struct {
-	sync.Mutex
 	assets  map[string]*Asset
 	filters *filters.Collection
 }
@@ -70,10 +73,8 @@ func Load(filename string) (c *Collection, err error) {
 
 // Process processes all assets in the collection.
 func (c *Collection) Process(outdir string) error {
-	c.Lock()
-	defer c.Unlock()
-	for _, v := range c.assets {
-		if err := v.Process(c.filters, outdir); err != nil {
+	for _, a := range c.assets {
+		if err := c.ProcessAsset(a, c.filters, outdir); err != nil {
 			return err
 		}
 	}
@@ -82,8 +83,6 @@ func (c *Collection) Process(outdir string) error {
 
 // Get returns an asset by name or nil if there's no such asset.
 func (c *Collection) Get(name string) *Asset {
-	c.Lock()
-	defer c.Unlock()
 	return c.assets[name]
 }
 
@@ -95,9 +94,13 @@ func fillTemplate(template string, hash []byte) string {
 	return strings.Replace(template, ":hash", hs, -1)
 }
 
-func concatFiles(filenames []string,  separator string) (out []byte, err error) {
+func concatFiles(filenames []string, separator string) (out []byte, err error) {
 	sep := []byte(separator)
 	for i, f := range filenames {
+		if len(f) > 0 && f[0] == bufSigil {
+			// Not a file, skip for now.
+			continue
+		}
 		b, err := ioutil.ReadFile(f)
 		if err != nil {
 			return nil, err
@@ -110,16 +113,40 @@ func concatFiles(filenames []string,  separator string) (out []byte, err error) 
 	return out, nil
 }
 
-func (a *Asset) Process(filters *filters.Collection, outdir string) error {
+func (c *Collection) ProcessAsset(a *Asset, filters *filters.Collection, outdir string) error {
 	// Concatenate files.
 	b, err := concatFiles(a.Files, a.Separator)
 	if err != nil {
 		return err
 	}
+	// Append buffers if any.
+	for _, f := range a.Files {
+		if len(f) > 0 && f[0] == bufSigil {
+			refAsset := c.Get(f[1:]) // e.g. $global-style -> global-style
+			if refAsset == nil {
+				return fmt.Errorf("asset %q not found", f[1:])
+			}
+			if !refAsset.processed {
+				// Process it.
+				// BUG Here hang if we can have a circular reference.
+				if err := c.ProcessAsset(refAsset, filters, outdir); err != nil {
+					return err
+				}
+			}
+			b = append(b, []byte(refAsset.output)...)
+		}
+	}
 	// Filter result.
 	s, err := filters.ApplyFilter(a.Name, string(b))
 	if err != nil {
 		return err
+	}
+	if a.OutName == string(bufSigil) {
+		// Don't write to file, just remember in buffer.
+		a.output = s
+		a.processed = true
+		log.Printf("A %c%s", bufSigil, a.Name)
+		return nil
 	}
 	// Make name from hash.
 	a.Filename = fillTemplate(a.OutName, utils.Hash(s))
@@ -131,5 +158,9 @@ func (a *Asset) Process(filters *filters.Collection, outdir string) error {
 	log.Printf("A %s", a.Filename)
 	// Write to file.
 	outfile := filepath.Join(outdir, filepath.FromSlash(a.Filename))
-	return utils.WriteStringToFile(outfile, s)
+	if err := utils.WriteStringToFile(outfile, s); err != nil {
+		return err
+	}
+	a.processed = true
+	return nil
 }

@@ -1,9 +1,14 @@
 ---
+- name: additional-style
+  files: [assets/css/additional.css]
+  outname: $   # store output in buffer and use it later by @additional-style name.
+
 - name: global-style
-  files: [assets/css/main.css, assets/css/blog.css]
+  files: [assets/css/main.css, assets/css/blog.css, $additional-style]
   separator: "\n/* ---- */\n"
   filter: cssmin
   outname: /assets/global-:hash.css
+
 
 ## Example of using LESS:
 #- name: less-style
