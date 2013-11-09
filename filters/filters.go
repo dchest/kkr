@@ -7,7 +7,6 @@ package filters
 
 import (
 	"fmt"
-	"sync"
 )
 
 // Filter is an interface declaring a filter.
@@ -40,7 +39,6 @@ func Make(name string, args []string) Filter {
 
 // Collection is a collection of filters addressed by some key.
 type Collection struct {
-	sync.Mutex
 	filters map[string]Filter
 	enabled bool
 }
@@ -55,15 +53,11 @@ func NewCollection() *Collection {
 
 // SetEnabled sets enabled state of the collection.
 func (c *Collection) SetEnabled(enabled bool) {
-	c.Lock()
-	defer c.Unlock()
 	c.enabled = enabled
 }
 
 // Add adds the filter to collection to be addressable by key.
 func (c *Collection) Add(key string, filterName string, args []string) error {
-	c.Lock()
-	defer c.Unlock()
 	f := Make(filterName, args)
 	if f == nil {
 		return fmt.Errorf("filter %s not found", filterName)
@@ -95,8 +89,6 @@ func (c *Collection) AddFromYAML(key string, line interface{}) error {
 // Get returns a filter for key.
 // It returns nil if the filter wasn't found.
 func (c *Collection) Get(key string) Filter {
-	c.Lock()
-	defer c.Unlock()
 	return c.filters[key]
 }
 
@@ -104,8 +96,6 @@ func (c *Collection) Get(key string) Filter {
 // If the filter wasn't found, returns the original string.
 // TODO: do we need this method at all?
 func (c *Collection) ApplyFilter(key string, in string) (out string, err error) {
-	c.Lock()
-	defer c.Unlock()
 	f := c.filters[key]
 	if f == nil {
 		return in, nil

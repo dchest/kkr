@@ -11,7 +11,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"sync"
 	"text/template"
 
 	"github.com/dchest/kkr/metafile"
@@ -37,7 +36,6 @@ type Layout struct {
 }
 
 type Collection struct {
-	sync.Mutex
 	layouts map[string]*Layout
 	context SiteContext
 }
@@ -95,8 +93,6 @@ func (c *Collection) newLayoutFromFile(filename string, stripExtension bool) (l 
 }
 
 func (c *Collection) AddFile(filename string) error {
-	c.Lock()
-	defer c.Unlock()
 	l, err := c.newLayoutFromFile(filename, true)
 	if err != nil {
 		return err
