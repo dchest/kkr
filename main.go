@@ -88,14 +88,19 @@ func main() {
 			select {}
 		}
 	case "serve":
+		serverDone := make(chan bool)
+		go func() {
+			err := currentSite.Serve(*fHttp)
+			if err != nil {
+				log.Fatalf("! serving error: %s", err)
+			}
+			serverDone <- true
+		}()
 		err = currentSite.Build()
 		if err != nil {
 			log.Fatalf("! build error: %s", err)
 		}
-		err = currentSite.Serve(*fHttp)
-		if err != nil {
-			log.Fatalf("! serving error: %s", err)
-		}
+		<-serverDone
 	case "clean":
 		err = currentSite.Clean()
 		if err != nil {
