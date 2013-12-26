@@ -472,7 +472,7 @@ func (s *Site) generateSearchIndex() error {
 		log.Println("* No documents indexed.")
 		return nil
 	}
-	if _, err := fmt.Fprintf(f, "%s = searchIndex"); err != nil {
+	if _, err := fmt.Fprintf(f, "var searchIndex = "); err != nil {
 		return err
 	}
 	err = index.WriteJSON(f)
