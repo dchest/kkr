@@ -70,6 +70,7 @@ func LoadPost(basedir, filename, outNameTemplate string) (p *Post, err error) {
 	page.meta["date"] = date
 	page.meta["url"] = url
 	page.meta["id"] = basefile
+	page.meta["is_post"] = true
 
 	// Get tags.
 	var tags []string
