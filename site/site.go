@@ -18,6 +18,7 @@ import (
 	"time"
 
 	"github.com/dchest/fsnotify"
+	"github.com/dchest/static-search/indexer"
 
 	"github.com/dchest/kkr/assets"
 	"github.com/dchest/kkr/filters"
@@ -50,12 +51,13 @@ var (
 
 type Config struct {
 	// Loadable from YAML.
-	Name       string                 `yaml:"name"`
-	Author     string                 `yaml:"author"`
-	Permalink  string                 `yaml:"permalink"`
-	URL        string                 `yaml:"url"`
-	Filters    map[string]interface{} `yaml:"filters"`
-	Properties map[string]interface{} `yaml:"properties"`
+	Name        string                 `yaml:"name"`
+	Author      string                 `yaml:"author"`
+	Permalink   string                 `yaml:"permalink"`
+	URL         string                 `yaml:"url"`
+	Filters     map[string]interface{} `yaml:"filters"`
+	Properties  map[string]interface{} `yaml:"properties"`
+	SearchIndex string                 `yaml:"search_index"`
 
 	// Generated.
 	Date    time.Time
@@ -423,8 +425,61 @@ func (s *Site) Build() (err error) {
 	if err != nil {
 		return err
 	}
-
+	if s.Config.SearchIndex != "" {
+		s.generateSearchIndex()
+	}
 	log.Printf("* Built in %s", time.Now().Sub(t))
+	return nil
+}
+
+func (s *Site) generateSearchIndex() error {
+	log.Printf("* Indexing")
+	dir := filepath.Clean(filepath.Join(s.BaseDir, OutDirName))
+	index := indexer.New()
+	n := 0
+	err := filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.IsDir() {
+			return nil
+		}
+		if !utils.HasFileExt(path, HTMLExtensions) {
+			return nil
+		}
+		f, err := os.Open(path)
+		if err != nil {
+			return err
+		}
+		url := utils.CleanPermalink(filepath.ToSlash(path[len(dir):]))
+		err = index.AddHTML(url, f)
+		f.Close()
+		if err != nil {
+			return err
+		}
+		n++
+		return nil
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	f, err := os.Create(filepath.Join(s.BaseDir, OutDirName, s.Config.SearchIndex))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	if n == 0 {
+		log.Println("* No documents indexed.")
+		return nil
+	}
+	if _, err := fmt.Fprintf(f, "%s = searchIndex"); err != nil {
+		return err
+	}
+	err = index.WriteJSON(f)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Printf("* Indexed %d documents.", n)
 	return nil
 }
 
