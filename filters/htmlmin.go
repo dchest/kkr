@@ -30,6 +30,8 @@ func init() {
 				f.scripts = true
 			case "styles", "css":
 				f.styles = true
+			case "unquote":
+				f.unquote = true
 			}
 		}
 		return f
@@ -37,8 +39,7 @@ func init() {
 }
 
 type HTMLMin struct {
-	scripts bool
-	styles  bool
+	scripts, styles, unquote bool
 }
 
 func (f *HTMLMin) Name() string {
@@ -49,6 +50,7 @@ func (f *HTMLMin) Apply(s string) (out string, err error) {
 	result, err := htmlmin.Minify([]byte(s), &htmlmin.Options{
 		MinifyScripts: f.scripts,
 		MinifyStyles:  f.styles,
+		UnquoteAttrs:  f.unquote,
 	})
 	if err != nil {
 		return "", err
