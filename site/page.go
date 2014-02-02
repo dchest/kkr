@@ -59,6 +59,7 @@ func LoadPage(basedir, filename string) (p *Page, err error) {
 	if markup, ok := meta["markup"]; ok {
 		if markup != "markdown" {
 			err = fmt.Errorf("unknown markup: %q", markup)
+			return
 		}
 		content = blackfriday.MarkdownCommon(content)
 	}
