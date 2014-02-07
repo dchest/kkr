@@ -497,9 +497,9 @@ func (s *Site) LayoutFuncs() layouts.FuncMap {
 	// TODO cache this map.
 	return layouts.FuncMap{
 		// `xml` function escapes XML.
-		"xml": func(s string) (string, error) {
+		"xml": func(in string) (string, error) {
 			var buf bytes.Buffer
-			if err := xml.EscapeText(&buf, []byte(s)); err != nil {
+			if err := xml.EscapeText(&buf, []byte(in)); err != nil {
 				return "", err
 			}
 			return buf.String(), nil
@@ -519,6 +519,10 @@ func (s *Site) LayoutFuncs() layouts.FuncMap {
 				return "", fmt.Errorf("include %q not found", name)
 			}
 			return out, nil
+		},
+		// `abspaths` adds site URL to relative paths of src and href attributes.
+		"abspaths": func(in string) (string, error) {
+			return utils.AbsPaths(s.Config.URL, in), nil
 		},
 	}
 }

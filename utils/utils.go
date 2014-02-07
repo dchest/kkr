@@ -8,13 +8,15 @@ package utils
 import (
 	"crypto/md5"
 	"fmt"
-	"github.com/dchest/goyaml"
 	"io"
 	"io/ioutil"
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"time"
+
+	"github.com/dchest/goyaml"
 )
 
 // UnmarshallYAMLFile reads YAML file and unmarshalls it into data.
@@ -116,4 +118,21 @@ func HasFileExt(filename string, extensions []string) bool {
 func ReplaceFileExt(filename string, ext string) string {
 	oldext := filepath.Ext(filename)
 	return filename[:len(filename)-len(oldext)] + ext
+}
+
+var absPathsRx = []*regexp.Regexp{
+	regexp.MustCompile(`(?i)<([^>]+\s)(src|href)=(")/([^"]+)`),
+	regexp.MustCompile(`(?i)<([^>]+\s)(src|href)=(')/([^']+)`),
+	//TODO support non-quoted attribute values.
+}
+
+// AbsPaths adds urlPrefix to paths of src and href attributes
+// in html starting with a slash (/).
+func AbsPaths(urlPrefix, html string) string {
+	urlPrefix = StripEndSlash(urlPrefix)
+	repl := `<$1$2=${3}` + urlPrefix + `/$4`
+	for _, re := range absPathsRx {
+		html = re.ReplaceAllString(html, repl)
+	}
+	return html
 }
