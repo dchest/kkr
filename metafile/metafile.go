@@ -13,7 +13,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/dchest/goyaml"
+	"gonuts.org/v1/yaml"
 )
 
 const metaSeparator = "---"
@@ -94,7 +94,7 @@ func (m *File) readMeta() error {
 		buf.WriteString(s)
 	}
 	m.meta = make(map[string]interface{})
-	if err = goyaml.Unmarshal(buf.Bytes(), &m.meta); err != nil {
+	if err = yaml.Unmarshal(buf.Bytes(), &m.meta); err != nil {
 		return err
 	}
 	m.hasMeta = true

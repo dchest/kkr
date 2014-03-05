@@ -16,7 +16,7 @@ import (
 	"regexp"
 	"time"
 
-	"github.com/dchest/goyaml"
+	"gonuts.org/v1/yaml"
 )
 
 // UnmarshallYAMLFile reads YAML file and unmarshalls it into data.
@@ -25,7 +25,7 @@ func UnmarshallYAMLFile(filename string, data interface{}) error {
 	if err != nil {
 		return err
 	}
-	return goyaml.Unmarshal(b, data)
+	return yaml.Unmarshal(b, data)
 }
 
 // CleanPermalink returns a cleaned version of permalink: without
