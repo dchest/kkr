@@ -16,7 +16,7 @@ import (
 	"regexp"
 	"time"
 
-	"gonuts.org/v1/yaml"
+	"gopkg.in/v1/yaml"
 )
 
 // UnmarshallYAMLFile reads YAML file and unmarshalls it into data.

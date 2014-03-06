@@ -13,7 +13,7 @@ import (
 	"strings"
 	"sync"
 
-	"gonuts.org/v1/yaml"
+	"gopkg.in/v1/yaml"
 )
 
 const metaSeparator = "---"
