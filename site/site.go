@@ -16,6 +16,7 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+	"unicode/utf8"
 
 	"github.com/dchest/fsnotify"
 	"github.com/dchest/static-search/indexer"
@@ -523,6 +524,25 @@ func (s *Site) LayoutFuncs() layouts.FuncMap {
 		// `abspaths` adds site URL to relative paths of src and href attributes.
 		"abspaths": func(in string) (string, error) {
 			return utils.AbsPaths(s.Config.URL, in), nil
+		},
+		// `truncate` function truncates text to the specified number of bytes.
+		// Appends "..." if the string was truncated.
+		"truncate": func(n int, s string) (string, error) {
+			byteCount := 0
+			runeCount := 0
+			for byteCount < len(s) {
+				_, size := utf8.DecodeRuneInString(s[byteCount:])
+				byteCount += size
+				runeCount++
+				if runeCount >= n {
+					return s[:byteCount] + "...", nil
+				}
+			}
+			return s, nil
+		},
+		// `striptags` removes HTML tags from the given string.
+		"striptags": func(s string) (string, error) {
+			return utils.StripHTMLTags(s), nil
 		},
 	}
 }
