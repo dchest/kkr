@@ -8,4 +8,4 @@ Static site generator similar to Jekyll written in Go.
 No docs yet, but see example website in `example` directory.
 
 
-[![Build Status](https://travis-ci.org/dchest/kkr.png)](https://travis-ci.org/dchest/kkr)
+[![Build Status](https://travis-ci.org/dchest/kkr.svg)](https://travis-ci.org/dchest/kkr)
