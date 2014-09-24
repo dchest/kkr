@@ -18,11 +18,11 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/dchest/fsnotify"
 	"github.com/dchest/static-search/indexer"
 
 	"github.com/dchest/kkr/assets"
 	"github.com/dchest/kkr/filters"
+	"github.com/dchest/kkr/fspoll"
 	"github.com/dchest/kkr/layouts"
 	"github.com/dchest/kkr/utils"
 )
@@ -96,7 +96,7 @@ type Site struct {
 	buildQueue  chan bool
 	buildErrors chan error
 
-	watcher             *fsnotify.Watcher
+	watcher             *fspoll.Watcher
 	cleanBeforeBuilding bool
 }
 
@@ -553,54 +553,10 @@ func (s *Site) Serve(addr string) error {
 	return http.ListenAndServe(addr, http.FileServer(http.Dir(outDir)))
 }
 
-func (s *Site) getWatchedDirs() (dirs []string, err error) {
-	// Watch every subdirectory of site except for output directory.
-	outDir := filepath.Join(s.BaseDir, OutDirName)
-	// Only watch specific directories.
-	rootDirs := []string{
-		AssetsDirName,
-		IncludesDirName,
-		LayoutsDirName,
-		PagesDirName,
-		PostsDirName,
-	}
-	dirs = make([]string, 0)
-	for _, rootDir := range rootDirs {
-		err = filepath.Walk(filepath.Join(s.BaseDir, rootDir), func(path string, fi os.FileInfo, err error) error {
-			if err != nil {
-				return err
-			}
-			if !fi.IsDir() {
-				return nil // skip non-directories
-			}
-			if path == outDir {
-				return filepath.SkipDir // skip out directory and its subdirectories
-			}
-			dirs = append(dirs, path)
-			return nil
-		})
-		if err != nil {
-			if os.IsNotExist(err) {
-				err = nil
-				continue
-			}
-			return nil, err
-		}
-	}
-	// Add BaseDir.
-	dirs = append(dirs, s.BaseDir)
-	return
-}
-
-func (s *Site) isWatcherIgnored(name string) bool {
-	if filepath.Base(name) == OutDirName {
-		return true
-	}
-	return false
-}
-
 func (s *Site) StartWatching() (err error) {
-	watcher, err := fsnotify.NewWatcher()
+	// Watch every subdirectory of site except for output directory.
+	excludeGlobs := []string{filepath.Join(s.BaseDir, OutDirName)}
+	watcher, err := fspoll.Watch(s.BaseDir, excludeGlobs, 0)
 	if err != nil {
 		return err
 	}
@@ -608,23 +564,8 @@ func (s *Site) StartWatching() (err error) {
 	go func() {
 		for {
 			select {
-			case ev := <-watcher.Event:
-				if s.isWatcherIgnored(ev.Name) {
-					break
-				}
-				log.Println("W event:", ev)
-				// Wait for more events a bit.
-			waiting:
-				for {
-					select {
-					case ev := <-watcher.Event:
-						log.Println("W +event:", ev)
-					case err := <-watcher.Error:
-						log.Println("! watcher error:", err)
-					case <-time.After(100 * time.Millisecond):
-						break waiting
-					}
-				}
+			case <-watcher.Change:
+				log.Println("W detected change")
 				if err := s.Build(); err != nil {
 					log.Printf("! build error: %s", err)
 				}
@@ -633,19 +574,7 @@ func (s *Site) StartWatching() (err error) {
 			}
 		}
 	}()
-
-	watchedDirs, err := s.getWatchedDirs()
-	if err != nil {
-		return err
-	}
-	for _, dir := range watchedDirs {
-		if err := watcher.Watch(dir); err != nil {
-			return err
-		}
-	}
-
 	s.watcher = watcher
-
 	log.Printf("* Watching for changes.")
 	return nil
 }
