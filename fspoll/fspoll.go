@@ -2,7 +2,6 @@
 package fspoll
 
 import (
-	"log"
 	"os"
 	"path/filepath"
 	"time"
@@ -101,7 +100,6 @@ func (w *Watcher) check() (hasChange bool, err error) {
 		w.state = ns
 	}()
 	if len(ns) != len(w.state) {
-		log.Print("$$$ Length differ")
 		return true, nil
 	}
 	// Compare files.
@@ -109,26 +107,18 @@ func (w *Watcher) check() (hasChange bool, err error) {
 		ofi, ok := w.state[path]
 		if !ok {
 			// New file.
-			log.Print("$$$ New file")
-			log.Print(path)
 			return true, nil
 		}
 		// Compare times.
 		if !ofi.ModTime().Equal(nfi.ModTime()) {
-			log.Print("$$$ Times differ")
-			log.Print(path)
 			return true, nil
 		}
 		// Compare sizes.
 		if ofi.Size() != nfi.Size() {
-			log.Print("$$$ Sizes differ")
-			log.Print(path)
 			return true, nil
 		}
 		// Compare modes.
 		if ofi.Mode() != nfi.Mode() {
-			log.Print("$$$ Modes differ")
-			log.Print(path)
 			return true, nil
 		}
 	}
@@ -136,8 +126,6 @@ func (w *Watcher) check() (hasChange bool, err error) {
 	for opath := range w.state {
 		_, ok := ns[opath]
 		if !ok {
-			log.Print("$$$ Deleted file")
-			log.Print(opath)
 			return true, nil
 		}
 	}
