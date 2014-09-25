@@ -113,17 +113,19 @@ func (w *Watcher) check() (hasChange bool, err error) {
 			// New file.
 			return true, nil
 		}
-		// Compare times.
-		if !ofi.ModTime().Equal(nfi.ModTime()) {
-			return true, nil
-		}
-		// Compare sizes.
-		if ofi.Size() != nfi.Size() {
-			return true, nil
-		}
 		// Compare modes.
 		if ofi.Mode() != nfi.Mode() {
 			return true, nil
+		}
+		if !ofi.IsDir() {
+			// Compare times.
+			if !ofi.ModTime().Equal(nfi.ModTime()) {
+				return true, nil
+			}
+			// Compare sizes.
+			if ofi.Size() != nfi.Size() {
+				return true, nil
+			}
 		}
 	}
 	// Check for deleted files.
