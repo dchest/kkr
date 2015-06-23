@@ -8,6 +8,7 @@ package metafile
 import (
 	"bufio"
 	"bytes"
+	"errors"
 	"io"
 	"os"
 	"strings"
@@ -78,8 +79,8 @@ func (m *File) readMeta() error {
 		return err
 	}
 	if strings.TrimSpace(head) != metaSeparator {
-		// This shouldn't happen, since we peeked into reader and saw a separator.
-		panic("programmer error: read wrong meta separator")
+		// Bad separator.
+		return errors.New("Bad meta separator on the first line")
 	}
 	buf := bytes.NewBuffer(nil)
 	for {
