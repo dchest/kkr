@@ -8,6 +8,7 @@ import (
 	"errors"
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/dchest/blackfriday"
 
@@ -16,20 +17,34 @@ import (
 )
 
 type Page struct {
-	meta     map[string]interface{}
-	content  string
-	Basedir  string
-	Filename string
-	URL      string
+	meta         map[string]interface{}
+	shortContent string // content before <!--more-->, or empty if none
+	content      string
+	Basedir      string
+	Filename     string
+	URL          string
 }
 
 func (p *Page) Meta() map[string]interface{} { return p.meta }
 func (p *Page) Content() string              { return p.content }
+func (p *Page) ShortContent() string         { return p.shortContent }
 
 var NotPageError = errors.New("not a page or post")
 
 func IsNotPage(err error) bool {
 	return err == NotPageError
+}
+
+const moreSeparator = "<!--more-->"
+
+func extractShortContent(s string) (shortContent, content string) {
+	i := strings.Index(s, moreSeparator)
+	if i < 0 {
+		return "", s
+	}
+	shortContent = s[:i]
+	content = s[:i] + s[i+len(moreSeparator):]
+	return
 }
 
 func LoadPage(basedir, filename string) (p *Page, err error) {
@@ -73,11 +88,14 @@ func LoadPage(basedir, filename string) (p *Page, err error) {
 	meta["url"] = url
 	meta["id"] = filepath.ToSlash(filename)
 
+	shortContent, contentStr := extractShortContent(string(content))
+
 	return &Page{
-		meta:     meta,
-		content:  string(content),
-		Basedir:  basedir,
-		Filename: filename,
-		URL:      url,
+		meta:         meta,
+		shortContent: shortContent,
+		content:      contentStr,
+		Basedir:      basedir,
+		Filename:     filename,
+		URL:          url,
 	}, nil
 }
