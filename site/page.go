@@ -10,7 +10,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/dchest/blackfriday"
+	"stablelib.com/v1/blackfriday"
 
 	"github.com/dchest/kkr/metafile"
 	"github.com/dchest/kkr/utils"
