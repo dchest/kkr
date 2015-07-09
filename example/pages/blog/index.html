@@ -7,7 +7,7 @@ title: Blog
 <h3 class="post-title"><a href="{{.URL}}">{{.Meta.title}}</a> <small class="post-meta">{{.Date.Format "Jan 2"}}</small></h3>
   {{if .ShortContent}}
     {{.ShortContent}}
-    <a href="{{.URL}}">Read more</a>
+    <a href="{{.URL}}#more">Read more</a>
   {{else}}
     {{.Content}}
   {{end}}

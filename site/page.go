@@ -43,7 +43,7 @@ func extractShortContent(s string) (shortContent, content string) {
 		return "", s
 	}
 	shortContent = s[:i]
-	content = s[:i] + s[i+len(moreSeparator):]
+	content = s[:i] + `<a name="more"></a>` + s[i+len(moreSeparator):]
 	return
 }
 
