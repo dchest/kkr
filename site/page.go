@@ -18,8 +18,8 @@ import (
 
 type Page struct {
 	meta         map[string]interface{}
-	shortContent string // content before <!--more-->, or empty if none
 	content      string
+	ShortContent string // content before <!--more-->, or empty if none
 	Basedir      string
 	Filename     string
 	URL          string
@@ -27,7 +27,6 @@ type Page struct {
 
 func (p *Page) Meta() map[string]interface{} { return p.meta }
 func (p *Page) Content() string              { return p.content }
-func (p *Page) ShortContent() string         { return p.shortContent }
 
 var NotPageError = errors.New("not a page or post")
 
@@ -92,7 +91,7 @@ func LoadPage(basedir, filename string) (p *Page, err error) {
 
 	return &Page{
 		meta:         meta,
-		shortContent: shortContent,
+		ShortContent: shortContent,
 		content:      contentStr,
 		Basedir:      basedir,
 		Filename:     filename,
