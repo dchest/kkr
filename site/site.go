@@ -511,7 +511,7 @@ func (s *Site) LayoutFuncs() layouts.FuncMap {
 			if a == nil {
 				return "", fmt.Errorf("asset %q not found", name)
 			}
-			return a.Filename, nil
+			return a.Result, nil
 		},
 		// `include` function returns text from include file.
 		"include": func(name string) (string, error) {

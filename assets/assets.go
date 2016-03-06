@@ -27,9 +27,9 @@ type Asset struct {
 	Separator string      `yaml:"separator,omitempty"`
 	OutName   string      `yaml:"outname"`
 
-	Filename string
+	// Result is output filename, if OutName is "$", the content of output.
+	Result string
 
-	output    string // if OutName is "$", the content of output is store here instead of the file
 	processed bool
 }
 
@@ -133,7 +133,7 @@ func (c *Collection) ProcessAsset(a *Asset, filters *filters.Collection, outdir 
 					return err
 				}
 			}
-			b = append(b, []byte(refAsset.output)...)
+			b = append(b, []byte(refAsset.Result)...)
 		}
 	}
 	// Filter result.
@@ -142,22 +142,24 @@ func (c *Collection) ProcessAsset(a *Asset, filters *filters.Collection, outdir 
 		return err
 	}
 	if a.OutName == string(bufSigil) {
-		// Don't write to file, just remember in buffer.
-		a.output = s
+		// Result is output.
+		// Don't write to file, just remember result.
+		a.Result = s
 		a.processed = true
 		log.Printf("A %c%s", bufSigil, a.Name)
 		return nil
 	}
-	// Make name from hash.
-	a.Filename = fillTemplate(a.OutName, utils.Hash(s))
+	// Result is filename.
+	// Make file name from hash.
+	a.Result = fillTemplate(a.OutName, utils.Hash(s))
 	// Check that the result is not empty.
-	if a.Filename == "" {
+	if a.Result == "" {
 		// Use hash for name.
-		a.Filename = string(utils.Hash(s))
+		a.Result = string(utils.Hash(s))
 	}
-	log.Printf("A %s", a.Filename)
+	log.Printf("A %s", a.Result)
 	// Write to file.
-	outfile := filepath.Join(outdir, filepath.FromSlash(a.Filename))
+	outfile := filepath.Join(outdir, filepath.FromSlash(a.Result))
 	if err := utils.WriteStringToFile(outfile, s); err != nil {
 		return err
 	}
