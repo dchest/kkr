@@ -98,7 +98,7 @@ func LoadPost(basedir, filename, outNameTemplate string) (p *Post, err error) {
 		outname += "index.html"
 	}
 	page.Filename = filepath.FromSlash(outname)
-	page.URL = url
+	page.url = url
 	return &Post{
 		Page: *page,
 		Date: date,

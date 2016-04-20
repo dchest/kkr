@@ -47,16 +47,19 @@ func EnableCache(value bool) {
 
 type Page struct {
 	fi           os.FileInfo
+	uid          string
 	meta         map[string]interface{}
 	content      string
 	ShortContent string // content before <!--more-->, or empty if none
 	Basedir      string
 	Filename     string
-	URL          string
+	url          string
 }
 
 func (p *Page) Meta() map[string]interface{} { return p.meta }
 func (p *Page) Content() string              { return p.content }
+func (p *Page) FileInfo() os.FileInfo        { return p.fi }
+func (p *Page) URL() string                  { return p.url }
 
 var NotPageError = errors.New("not a page or post")
 
@@ -137,7 +140,7 @@ func LoadPage(basedir, filename string) (p *Page, err error) {
 		content:      contentStr,
 		Basedir:      basedir,
 		Filename:     filename,
-		URL:          url,
+		url:          url,
 	}
 	if pageCache != nil {
 		// Cache this page

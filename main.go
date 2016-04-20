@@ -11,6 +11,7 @@ import (
 	"os"
 	"runtime/pprof"
 
+	"github.com/dchest/kkr/layouts"
 	"github.com/dchest/kkr/site"
 )
 
@@ -74,6 +75,7 @@ func main() {
 	if *fWatch {
 		if !*fNoCache {
 			site.EnableCache(true)
+			layouts.EnableCache(true)
 		}
 		if err := currentSite.StartWatching(); err != nil {
 			log.Fatalf("! Cannot start watcher: %s", err)

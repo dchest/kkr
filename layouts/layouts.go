@@ -11,6 +11,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sync"
 	"text/template"
 
 	"github.com/dchest/kkr/metafile"
@@ -26,6 +27,8 @@ type SiteContext interface {
 type PageContext interface {
 	Meta() map[string]interface{}
 	Content() string
+	URL() string
+	FileInfo() os.FileInfo
 }
 
 // Layout represends a layout.
@@ -144,6 +147,12 @@ func (c *Collection) renderLayout(l *Layout, pageContext PageContext, content st
 }
 
 func (c *Collection) RenderPage(pageContext PageContext, defaultLayoutName string) (out string, err error) {
+	if renderedCache != nil {
+		// Check cache
+		if rendered, ok := renderedCache.Get(pageContext.URL(), pageContext.FileInfo()); ok {
+			return rendered, nil
+		}
+	}
 	layoutName, err := layoutNameFromMeta(pageContext.Meta())
 	if err != nil {
 		return
@@ -155,5 +164,56 @@ func (c *Collection) RenderPage(pageContext PageContext, defaultLayoutName strin
 	if err != nil {
 		return
 	}
-	return c.renderLayout(p, pageContext, pageContext.Content())
+	out, err = c.renderLayout(p, pageContext, pageContext.Content())
+	if err == nil && renderedCache != nil {
+		// Add to cache
+		renderedCache.Put(pageContext.URL(), pageContext.FileInfo(), out)
+	}
+	return out, err
+}
+
+type cache struct {
+	mu sync.Mutex
+	m  map[string]cacheEntry
+}
+
+type cacheEntry struct {
+	fi       os.FileInfo
+	rendered string
+}
+
+func (c *cache) Get(name string, fi os.FileInfo) (string, bool) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	e, ok := c.m[name]
+	if !ok {
+		return "", false
+	}
+	if e.fi.ModTime() != fi.ModTime() || e.fi.Size() != fi.Size() || e.fi.Mode() != fi.Mode() {
+		// This entry changed, delete it from cache.
+		delete(c.m, name)
+		return "", false
+	}
+	return e.rendered, true
+}
+
+func (c *cache) Put(name string, fi os.FileInfo, rendered string) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.m[name] = cacheEntry{
+		fi:       fi,
+		rendered: rendered,
+	}
+}
+
+var renderedCache *cache
+
+func EnableCache(value bool) {
+	if value {
+		renderedCache = &cache{
+			m: make(map[string]cacheEntry),
+		}
+	} else {
+		renderedCache = nil
+	}
 }
