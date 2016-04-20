@@ -24,6 +24,7 @@ import (
 	"github.com/dchest/kkr/filters"
 	"github.com/dchest/kkr/fspoll"
 	"github.com/dchest/kkr/layouts"
+	"github.com/dchest/kkr/markup"
 	"github.com/dchest/kkr/utils"
 )
 
@@ -59,6 +60,7 @@ type Config struct {
 	Filters     map[string]interface{} `yaml:"filters"`
 	Properties  map[string]interface{} `yaml:"properties"`
 	SearchIndex string                 `yaml:"search_index"`
+	Markup      *markup.Options        `yaml:"markup"`
 
 	// Generated.
 	Date    time.Time
@@ -378,6 +380,8 @@ func (s *Site) runBuild() (err error) {
 	}
 	// Set site build time.
 	s.Config.Date = time.Now()
+	// Set markup options
+	markup.SetOptions(s.Config.Markup)
 	// Load page filters.
 	if err := s.LoadPageFilters(); err != nil {
 		return err

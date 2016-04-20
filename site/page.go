@@ -6,12 +6,10 @@ package site
 
 import (
 	"errors"
-	"fmt"
 	"path/filepath"
 	"strings"
 
-	"stablelib.com/v1/blackfriday"
-
+	"github.com/dchest/kkr/markup"
 	"github.com/dchest/kkr/metafile"
 	"github.com/dchest/kkr/utils"
 )
@@ -70,12 +68,15 @@ func LoadPage(basedir, filename string) (p *Page, err error) {
 		filename = utils.ReplaceFileExt(filename, ".html")
 	}
 
-	if markup, ok := meta["markup"]; ok {
-		if markup != "markdown" {
-			err = fmt.Errorf("unknown markup: %q", markup)
+	if markupName, ok := meta["markup"]; ok {
+		markupName, ok := markupName.(string)
+		if !ok {
+			return nil, errors.New("markup must be a string")
+		}
+		content, err = markup.Process(markupName, content)
+		if err != nil {
 			return
 		}
-		content = blackfriday.MarkdownCommon(content)
 	}
 
 	// Change filename if there's 'permalink'.
