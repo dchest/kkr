@@ -48,6 +48,8 @@ func LoadPost(basedir, filename, outNameTemplate string) (p *Post, err error) {
 			if err != nil {
 				return nil, err
 			}
+		case time.Time:
+			// already processed, do nothing
 		default:
 			return nil, errors.New("'date' is not a string")
 		}

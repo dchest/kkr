@@ -6,15 +6,47 @@ package site
 
 import (
 	"errors"
+	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	"github.com/dchest/kkr/markup"
 	"github.com/dchest/kkr/metafile"
 	"github.com/dchest/kkr/utils"
 )
 
+type cache struct {
+	mu sync.Mutex
+	m  map[string]*Page
+}
+
+func (c *cache) Get(name string) *Page {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.m[name]
+}
+
+func (c *cache) Put(name string, page *Page) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	c.m[name] = page
+}
+
+var pageCache *cache
+
+func EnableCache(value bool) {
+	if value {
+		pageCache = &cache{
+			m: make(map[string]*Page),
+		}
+	} else {
+		pageCache = nil
+	}
+}
+
 type Page struct {
+	fi           os.FileInfo
 	meta         map[string]interface{}
 	content      string
 	ShortContent string // content before <!--more-->, or empty if none
@@ -45,7 +77,15 @@ func extractShortContent(s string) (shortContent, content string) {
 }
 
 func LoadPage(basedir, filename string) (p *Page, err error) {
-	f, err := metafile.Open(filepath.Join(basedir, filename))
+	fullname := filepath.Join(basedir, filename)
+	if pageCache != nil {
+		// Try getting from cache
+		page := pageCache.Get(fullname)
+		if page != nil && !metafile.Changed(fullname, page.fi) {
+			return page, nil
+		}
+	}
+	f, err := metafile.Open(fullname)
 	if err != nil {
 		return
 	}
@@ -90,12 +130,18 @@ func LoadPage(basedir, filename string) (p *Page, err error) {
 
 	shortContent, contentStr := extractShortContent(string(content))
 
-	return &Page{
+	p = &Page{
+		fi:           f.FileInfo(),
 		meta:         meta,
 		ShortContent: shortContent,
 		content:      contentStr,
 		Basedir:      basedir,
 		Filename:     filename,
 		URL:          url,
-	}, nil
+	}
+	if pageCache != nil {
+		// Cache this page
+		pageCache.Put(fullname, p)
+	}
+	return p, nil
 }

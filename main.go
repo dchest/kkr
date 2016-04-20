@@ -22,6 +22,7 @@ var (
 	//fNoFilters  = flag.Bool("nofilters", false, "disable filters")
 	fNoClean    = flag.Bool("noclean", false, "don't delete output directory before building")
 	fCPUProfile = flag.String("cpuprofile", "", "(debug) write CPU profile to file")
+	fNoCache    = flag.Bool("nocache", false, "disables caching when watching")
 )
 
 var Usage = func() {
@@ -71,6 +72,9 @@ func main() {
 		log.Fatalf("! Cannot open site: %s", err)
 	}
 	if *fWatch {
+		if !*fNoCache {
+			site.EnableCache(true)
+		}
 		if err := currentSite.StartWatching(); err != nil {
 			log.Fatalf("! Cannot start watcher: %s", err)
 		}

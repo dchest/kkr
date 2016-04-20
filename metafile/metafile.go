@@ -21,6 +21,7 @@ const metaSeparator = "---"
 
 type File struct {
 	sync.Mutex
+	fi          os.FileInfo
 	f           *os.File
 	r           *bufio.Reader
 	metaRead    bool
@@ -36,9 +37,15 @@ func Open(name string) (m *File, err error) {
 	if err != nil {
 		return nil, err
 	}
+	fi, err := f.Stat()
+	if err != nil {
+		f.Close()
+		return nil, err
+	}
 	m = &File{
-		f: f,
-		r: bufio.NewReader(f),
+		fi: fi,
+		f:  f,
+		r:  bufio.NewReader(f),
 	}
 	// Try reading meta.
 	if err := m.readMeta(); err != nil {
@@ -143,4 +150,29 @@ func (m *File) Meta() map[string]interface{} {
 		return nil
 	}
 	return m.meta
+}
+
+func (m *File) FileInfo() os.FileInfo {
+	m.Lock()
+	defer m.Unlock()
+	return m.fi
+}
+
+// Changed returns true if file info on disk changed compared to the given file info.
+func Changed(name string, fi os.FileInfo) bool {
+	dfi, err := os.Stat(name)
+	if err != nil {
+		return true
+	}
+	// Check if file changed
+	if fi.ModTime() != dfi.ModTime() {
+		return true
+	}
+	if fi.Size() != dfi.Size() {
+		return true
+	}
+	if fi.Mode() != dfi.Mode() {
+		return true
+	}
+	return false
 }
