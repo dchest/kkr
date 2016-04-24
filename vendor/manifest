@@ -1,0 +1,87 @@
+{
+	"version": 0,
+	"dependencies": [
+		{
+			"importpath": "github.com/dchest/cssmin",
+			"repository": "https://github.com/dchest/cssmin",
+			"vcs": "git",
+			"revision": "fb8d9b44afdc258bfff6052d3667521babcb2239",
+			"branch": "master",
+			"notests": true
+		},
+		{
+			"importpath": "github.com/dchest/htmlmin",
+			"repository": "https://github.com/dchest/htmlmin",
+			"vcs": "git",
+			"revision": "e254725e81ac4ff4079c06cb49513138c9afc444",
+			"branch": "master",
+			"notests": true
+		},
+		{
+			"importpath": "github.com/dchest/jsmin",
+			"repository": "https://github.com/dchest/jsmin",
+			"vcs": "git",
+			"revision": "9c1f68690c8261c76c4f43dd1de5e7039148e83b",
+			"branch": "master",
+			"notests": true
+		},
+		{
+			"importpath": "github.com/dchest/static-search",
+			"repository": "https://github.com/dchest/static-search",
+			"vcs": "git",
+			"revision": "64cbf288e56cf14f1053b31439c8508d7e07ef01",
+			"branch": "master",
+			"notests": true
+		},
+		{
+			"importpath": "github.com/dchest/stemmer",
+			"repository": "https://github.com/dchest/stemmer",
+			"vcs": "git",
+			"revision": "f1ab276e6cf5fad3f8db813f22e25b1939c8ef70",
+			"branch": "master",
+			"notests": true
+		},
+		{
+			"importpath": "github.com/dchest/stemmer/porter2",
+			"repository": "https://github.com/dchest/stemmer",
+			"vcs": "git",
+			"revision": "f1ab276e6cf5fad3f8db813f22e25b1939c8ef70",
+			"branch": "master",
+			"path": "/porter2",
+			"notests": true
+		},
+		{
+			"importpath": "github.com/russross/blackfriday",
+			"repository": "https://github.com/russross/blackfriday",
+			"vcs": "git",
+			"revision": "151efb040f183f3b968215a236c71a2614b62879",
+			"branch": "master",
+			"notests": true
+		},
+		{
+			"importpath": "github.com/shurcooL/sanitized_anchor_name",
+			"repository": "https://github.com/shurcooL/sanitized_anchor_name",
+			"vcs": "git",
+			"revision": "10ef21a441db47d8b13ebcc5fd2310f636973c77",
+			"branch": "master",
+			"notests": true
+		},
+		{
+			"importpath": "golang.org/x/net/html",
+			"repository": "https://go.googlesource.com/net",
+			"vcs": "git",
+			"revision": "b797637b7aeeed133049c7281bfa31dcc9ca42d6",
+			"branch": "master",
+			"path": "/html",
+			"notests": true
+		},
+		{
+			"importpath": "gopkg.in/v1/yaml",
+			"repository": "https://gopkg.in/v1/yaml",
+			"vcs": "git",
+			"revision": "9f9df34309c04878acc86042b16630b0f696e1de",
+			"branch": "v1",
+			"notests": true
+		}
+	]
+}
