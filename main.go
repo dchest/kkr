@@ -11,7 +11,6 @@ import (
 	"os"
 	"runtime/pprof"
 
-	"github.com/dchest/kkr/layouts"
 	"github.com/dchest/kkr/site"
 )
 
@@ -75,7 +74,9 @@ func main() {
 	if *fWatch {
 		if !*fNoCache {
 			site.EnableCache(true)
-			layouts.EnableCache(true)
+			// XXX Layouts cache is disabled until I write
+			// new code that works when parent layout changes.
+			//layouts.EnableCache(true)
 		}
 		if err := currentSite.StartWatching(); err != nil {
 			log.Fatalf("! Cannot start watcher: %s", err)
