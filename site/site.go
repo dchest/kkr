@@ -82,6 +82,9 @@ func readConfig(filename string) (*Config, error) {
 	if c.Permalink == "" {
 		c.Permalink = DefaultPermalink
 	}
+	if c.Markup == nil {
+		c.Markup = &markup.Options{} // default options
+	}
 	// Some cleanup.
 	c.URL = utils.StripEndSlash(c.URL)
 	return &c, nil
