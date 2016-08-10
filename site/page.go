@@ -127,6 +127,12 @@ func LoadPage(basedir, filename string) (p *Page, err error) {
 		filename = filepath.FromSlash(permalink.(string))
 	}
 
+	// Change filename to filename/index.html
+	// if 'folder' is true.
+	if folder, ok := meta["folder"]; ok && folder.(bool) {
+		filename = filepath.Join(utils.ReplaceFileExt(filename, ""), "index.html")
+	}
+
 	url := utils.CleanPermalink(filepath.ToSlash(filename))
 	meta["url"] = url
 	meta["id"] = filepath.ToSlash(filename)
