@@ -21,7 +21,7 @@
 			"importpath": "github.com/dchest/jsmin",
 			"repository": "https://github.com/dchest/jsmin",
 			"vcs": "git",
-			"revision": "9c1f68690c8261c76c4f43dd1de5e7039148e83b",
+			"revision": "faeced8839472f349011f4c4c5441bbc28d02191",
 			"branch": "master",
 			"notests": true
 		},

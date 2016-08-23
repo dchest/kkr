@@ -37,6 +37,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"log"
 )
 
 const eof = -1
@@ -63,6 +64,7 @@ func (m *minifier) init(r *bufio.Reader, w *bufio.Writer) {
 
 func (m *minifier) error(s string) error {
 	m.err = fmt.Errorf("JSMIN Error: %s", s)
+	log.Fatal(s)
 	return m.err
 }
 
@@ -144,8 +146,9 @@ func (m *minifier) next() int {
 						if m.peek() == '/' {
 							m.get()
 							c = 0
+						} else {
+							m.putc(c)
 						}
-						break
 					case eof:
 						m.error("Unterminated comment.")
 						return eof
@@ -155,6 +158,8 @@ func (m *minifier) next() int {
 				}
 				m.putc('*')
 				m.putc('/')
+				c = '\n'
+				break
 			}
 			// --
 			for c != ' ' {
@@ -164,7 +169,6 @@ func (m *minifier) next() int {
 						m.get()
 						c = ' '
 					}
-					break
 				case eof:
 					m.error("Unterminated comment.")
 					return eof
