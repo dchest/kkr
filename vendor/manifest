@@ -29,7 +29,7 @@
 			"importpath": "github.com/dchest/static-search",
 			"repository": "https://github.com/dchest/static-search",
 			"vcs": "git",
-			"revision": "64cbf288e56cf14f1053b31439c8508d7e07ef01",
+			"revision": "3b46ce37a2560f3b8109ed53b2e4b5d49b4c11c2",
 			"branch": "master",
 			"notests": true
 		},
