@@ -212,3 +212,18 @@ func StripHTMLTags(s string) (output string) {
 
 	return
 }
+
+// NoVowelsHexEncode returns bytes encoded in a hex-like encoding which
+// doesn't use vowels.
+//
+// This is useful to avoid producing substrings, such as "ad", that
+// may be blocked by ad-blockers.
+func NoVowelsHexEncode(b []byte) string {
+	const hextable = "0123456789vbcdzf"
+	dst := make([]byte, len(b)*2)
+	for i, v := range b {
+		dst[i*2] = hextable[v>>4]
+		dst[i*2+1] = hextable[v&0x0f]
+	}
+	return string(dst)
+}

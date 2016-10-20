@@ -6,7 +6,6 @@
 package assets
 
 import (
-	"encoding/base32"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -90,7 +89,7 @@ func (c *Collection) Get(name string) *Asset {
 // hash and returns the result.
 func fillTemplate(template string, hash []byte) string {
 	// 10 bytes of hash is enough to avoid accidental collisions.
-	hs := strings.ToLower(base32.StdEncoding.EncodeToString(hash[:10]))
+	hs := utils.NoVowelsHexEncode(hash[:10])
 	return strings.Replace(template, ":hash", hs, -1)
 }
 
