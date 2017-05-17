@@ -7,6 +7,7 @@ package site
 
 import (
 	"bytes"
+	"encoding/json"
 	"encoding/xml"
 	"fmt"
 	"io"
@@ -511,6 +512,19 @@ func (s *Site) LayoutFuncs() layouts.FuncMap {
 				return "", err
 			}
 			return buf.String(), nil
+		},
+		// `json` function returns encoded JSON string (without quotes)
+		"json": func(in string) (string, error) {
+			var buf bytes.Buffer
+			enc := json.NewEncoder(&buf)
+			enc.SetEscapeHTML(false)
+			err := enc.Encode(in)
+			if err != nil {
+				return "", err
+			}
+			out := buf.String()
+			// slice out quotes and new line
+			return out[1 : len(out)-2], nil
 		},
 		// `asset` function returns asset URL by its name.
 		"asset": func(name string) (string, error) {
