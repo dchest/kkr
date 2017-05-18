@@ -4,7 +4,8 @@ layout: none
 {
   "version": "https://jsonfeed.org/version/1",
   "title": "{{with .Page.title}}{{ . | json}}{{else}}{{.Site.Name | json}}{{end}}",
-  "home_page_url": "{{.Site.URL}}{{.Page.url}}",
+  "home_page_url": "{{.Site.URL}}",
+  "feed_url": "{{.Site.URL}}{{.Page.url}}",
   "author": {
     "name": "{{.Site.Author | json}}"
   },
