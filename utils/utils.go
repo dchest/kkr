@@ -19,7 +19,7 @@ import (
 	"strings"
 	"time"
 
-	"gopkg.in/v1/yaml"
+	"gopkg.in/yaml.v1"
 )
 
 // UnmarshallYAMLFile reads YAML file and unmarshalls it into data.
