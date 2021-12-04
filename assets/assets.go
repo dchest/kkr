@@ -93,8 +93,7 @@ func fillTemplate(template string, hash []byte) string {
 	return strings.Replace(template, ":hash", hs, -1)
 }
 
-func concatFiles(filenames []string, separator string) (out []byte, err error) {
-	sep := []byte(separator)
+func concatFiles(filenames []string, separator []byte) (out []byte, err error) {
 	for i, f := range filenames {
 		if len(f) > 0 && f[0] == bufSigil {
 			// Not a file, skip for now.
@@ -106,20 +105,21 @@ func concatFiles(filenames []string, separator string) (out []byte, err error) {
 		}
 		out = append(out, b...)
 		if i != len(filenames)-1 {
-			out = append(out, sep...)
+			out = append(out, separator...)
 		}
 	}
 	return out, nil
 }
 
 func (c *Collection) ProcessAsset(a *Asset, filters *filters.Collection, outdir string) error {
+	separator := a.Separator
 	// Concatenate files.
-	b, err := concatFiles(a.Files, a.Separator)
+	b, err := concatFiles(a.Files, []byte(separator))
 	if err != nil {
 		return err
 	}
 	// Append buffers if any.
-	for _, f := range a.Files {
+	for i, f := range a.Files {
 		if len(f) > 0 && f[0] == bufSigil {
 			refAsset := c.Get(f[1:]) // e.g. $global-style -> global-style
 			if refAsset == nil {
@@ -133,6 +133,9 @@ func (c *Collection) ProcessAsset(a *Asset, filters *filters.Collection, outdir 
 				}
 			}
 			b = append(b, []byte(refAsset.Result)...)
+			if i != len(a.Files)-1 {
+				b = append(b, separator...)
+			}
 		}
 	}
 	// Filter result.
