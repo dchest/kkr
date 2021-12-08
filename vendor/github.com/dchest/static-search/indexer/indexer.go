@@ -12,11 +12,12 @@ import (
 )
 
 type Index struct {
-	Docs  []*Document              `json:"docs"`
-	Words map[string][]interface{} `json:"words"`
+	Docs       []*Document              `json:"docs"`
+	Words      map[string][]interface{} `json:"words"`
+	wordsToDoc map[string]map[int]float64
 
-	HTMLTitleWeight        int `json:"-"`
-	HTMLURLComponentWeight int `json:"-"`
+	HTMLTitleWeight        float64 `json:"-"`
+	HTMLURLComponentWeight float64 `json:"-"`
 }
 
 type Document struct {
@@ -28,21 +29,37 @@ func New() *Index {
 	return &Index{
 		Docs:                   make([]*Document, 0),
 		Words:                  make(map[string][]interface{}),
-		HTMLTitleWeight:        20,
-		HTMLURLComponentWeight: 20,
+		wordsToDoc:             make(map[string]map[int]float64), // words => doc => weight
+		HTMLTitleWeight:        5,
+		HTMLURLComponentWeight: 10,
 	}
 }
 
 func (n *Index) WriteJSON(w io.Writer) error {
+	for word, m := range n.wordsToDoc {
+		for doc, weight := range m {
+			// Normalize weight
+			normWeight := int(weight * 1000)
+			if normWeight < 1 {
+				normWeight = 1
+			}
+			if normWeight == 1 {
+				n.Words[word] = append(n.Words[word], doc)
+			} else {
+				n.Words[word] = append(n.Words[word], [2]int{doc, normWeight})
+			}
+		}
+	}
 	return json.NewEncoder(w).Encode(n)
 }
 
-func (n *Index) addWord(word string, doc, weight int) {
-	if weight == 1 {
-		n.Words[word] = append(n.Words[word], doc)
-	} else {
-		n.Words[word] = append(n.Words[word], [2]int{doc, weight})
+func (n *Index) addWord(word string, doc int, weight float64) {
+	m := n.wordsToDoc[word]
+	if m == nil {
+		m = make(map[int]float64)
+		n.wordsToDoc[word] = m
 	}
+	m[doc] += weight
 }
 
 func (n *Index) newDocument(url, title string) int {
@@ -50,8 +67,8 @@ func (n *Index) newDocument(url, title string) int {
 	return len(n.Docs) - 1
 }
 
-func (n *Index) addString(doc int, text string, wordWeight int) {
-	wordcnt := make(map[string]int)
+func (n *Index) addString(doc int, text string, wordWeight float64) {
+	wordcnt := make(map[string]float64)
 	tk := tokenizer.Words(text)
 	for tk.Next() {
 		w := tk.Token()
@@ -59,9 +76,17 @@ func (n *Index) addString(doc int, text string, wordWeight int) {
 			continue
 		}
 		wordcnt[porter2.Stemmer.Stem(removeAccents(w))] += wordWeight
+		wordWeight /= 1.1
+		if wordWeight < 0.0001 {
+			wordWeight = 0.0001
+		}
 	}
 	for w, c := range wordcnt {
-		n.addWord(w, doc, c)
+		scaled := float64(c) / float64(len(wordcnt))
+		if scaled < 0.0001 {
+			scaled = 0.0001
+		}
+		n.addWord(w, doc, scaled) // scaled
 	}
 }
 
@@ -86,17 +111,7 @@ func (n *Index) AddHTML(url string, r io.Reader) error {
 	url = strings.TrimPrefix(url, "http://")
 	url = strings.TrimPrefix(url, "https://")
 	url = strings.TrimPrefix(url, "www.")
-	// The farther the component, the less its weight.
-	// Also, each components weight depends on the total number of them, so
-	// that "blog" in /blog/ weights more than in /blog/some-post/.
-	components := strings.Split(url, "/")
-	weight := n.HTMLURLComponentWeight / len(components)
-	for _, v := range components {
-		weight /= 2
-		if weight < 1 {
-			weight = 1
-		}
-		n.addString(doc, v, weight)
-	}
+	url = strings.ReplaceAll(url, "/", " ")
+	n.addString(doc, url, n.HTMLURLComponentWeight)
 	return nil
 }
