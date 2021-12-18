@@ -13,9 +13,11 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"regexp"
+	"runtime"
 	"strings"
 	"time"
 
@@ -226,4 +228,16 @@ func NoVowelsHexEncode(b []byte) string {
 		dst[i*2+1] = hextable[v&0x0f]
 	}
 	return string(dst)
+}
+
+// OpenURL opens URL in the operating system (probably in the default browser).
+func OpenURL(url string) error {
+	switch runtime.GOOS {
+	case "darwin":
+		return exec.Command("open", url).Start()
+	case "linux", "freebsd", "openbsd":
+		return exec.Command("xdg-open", url).Start()
+	default:
+		return fmt.Errorf("Don't know how to open browser on %s", runtime.GOOS)
+	}
 }

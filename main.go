@@ -12,6 +12,7 @@ import (
 	"runtime/pprof"
 
 	"github.com/dchest/kkr/site"
+	"github.com/dchest/kkr/utils"
 )
 
 var currentSite *site.Site
@@ -23,6 +24,7 @@ var (
 	fNoClean    = flag.Bool("noclean", false, "don't delete output directory before building")
 	fCPUProfile = flag.String("cpuprofile", "", "(debug) write CPU profile to file")
 	fNoCache    = flag.Bool("nocache", false, "disables caching when watching")
+	fBrowser    = flag.Bool("browser", false, "open local site in browser after starting the web server")
 )
 
 var Usage = func() {
@@ -31,7 +33,7 @@ var Usage = func() {
 Commands:
   build  - build website
   serve  - start a web server
-  dev    - same as "serve -watch"
+  dev    - same as "serve -watch -browser"
   clean  - clean caches and remove output directory
 
 Options:
@@ -109,6 +111,11 @@ func main() {
 		err = currentSite.Build()
 		if err != nil {
 			log.Fatalf("! build error: %s", err)
+		}
+		if *fBrowser || command == "dev" {
+			if err := utils.OpenURL("http://" + *fHttp); err != nil {
+				log.Printf("! cannot open browser: %s", err)
+			}
 		}
 		<-serverDone
 	case "clean":
