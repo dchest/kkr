@@ -31,6 +31,7 @@ var Usage = func() {
 Commands:
   build  - build website
   serve  - start a web server
+  dev    - same as "serve -watch"
   clean  - clean caches and remove output directory
 
 Options:
@@ -50,6 +51,8 @@ func main() {
 	}
 	command = os.Args[1]
 	os.Args = os.Args[1:]
+
+	watch := *fWatch || command == "dev"
 
 	flag.Parse()
 
@@ -71,7 +74,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("! Cannot open site: %s", err)
 	}
-	if *fWatch {
+	if watch {
 		if !*fNoCache {
 			site.EnableCache(true)
 			// XXX Layouts cache is disabled until I write
@@ -90,11 +93,11 @@ func main() {
 		if err != nil {
 			log.Printf("! build error: %s", err)
 		}
-		if *fWatch {
+		if watch {
 			log.Printf("Watching for changes. Press Ctrl+C to quit.")
 			select {}
 		}
-	case "serve":
+	case "serve", "dev":
 		serverDone := make(chan bool)
 		go func() {
 			err := currentSite.Serve(*fHttp)
@@ -117,7 +120,7 @@ func main() {
 		log.Printf("! unknown command %s", command)
 		flag.Usage()
 	}
-	if *fWatch {
+	if watch {
 		currentSite.StopWatching()
 	}
 }
