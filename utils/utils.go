@@ -12,6 +12,7 @@ import (
 	"html/template"
 	"io"
 	"io/ioutil"
+	"net/url"
 	"os"
 	"os/exec"
 	"path"
@@ -231,12 +232,15 @@ func NoVowelsHexEncode(b []byte) string {
 }
 
 // OpenURL opens URL in the operating system (probably in the default browser).
-func OpenURL(url string) error {
+func OpenURL(addr string) error {
+	if _, err := url.Parse(addr); err != nil {
+		return err
+	}
 	switch runtime.GOOS {
 	case "darwin":
-		return exec.Command("open", url).Start()
+		return exec.Command("open", addr).Start()
 	case "linux", "freebsd", "openbsd":
-		return exec.Command("xdg-open", url).Start()
+		return exec.Command("xdg-open", addr).Start()
 	default:
 		return fmt.Errorf("Don't know how to open browser on %s", runtime.GOOS)
 	}
