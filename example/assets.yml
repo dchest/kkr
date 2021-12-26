@@ -17,7 +17,7 @@
 #  outname: /assets/less-:hash.css
 
 - name: hello-js
-  files: [assets/js/hello.js]
+  files: [assets/js/hello.js, $search-script]
   # Uncomment to enable compressing of output with YUI Compressor:
   # filter: [exec, "yui-compressor", "--type", "js"]
   filter: jsmin

@@ -19,7 +19,8 @@ import (
 	"time"
 	"unicode/utf8"
 
-	"github.com/dchest/static-search/indexer"
+	"github.com/dchest/kkr/search"
+	"github.com/dchest/kkr/search/indexer"
 
 	"github.com/dchest/kkr/assets"
 	"github.com/dchest/kkr/filters"
@@ -52,16 +53,21 @@ var (
 	PostExtensions     = []string{".html", ".htm", ".markdown", ".md"}
 )
 
+type SearchConfig struct {
+	Index   string   `yaml:"index"`
+	Exclude []string `yaml:"exclude"`
+}
+
 type Config struct {
 	// Loadable from YAML.
-	Name        string                 `yaml:"name"`
-	Author      string                 `yaml:"author"`
-	Permalink   string                 `yaml:"permalink"`
-	URL         string                 `yaml:"url"`
-	Filters     map[string]interface{} `yaml:"filters"`
-	Properties  map[string]interface{} `yaml:"properties"`
-	SearchIndex string                 `yaml:"search_index"`
-	Markup      *markup.Options        `yaml:"markup"`
+	Name       string                 `yaml:"name"`
+	Author     string                 `yaml:"author"`
+	Permalink  string                 `yaml:"permalink"`
+	URL        string                 `yaml:"url"`
+	Filters    map[string]interface{} `yaml:"filters"`
+	Properties map[string]interface{} `yaml:"properties"`
+	Search     *SearchConfig          `yaml:"search"`
+	Markup     *markup.Options        `yaml:"markup"`
 
 	// Generated.
 	Date    time.Time
@@ -144,6 +150,9 @@ func (s *Site) LoadAssets() error {
 	assets, err := assets.Load(AssetsFileName)
 	if err != nil {
 		return err
+	}
+	if s.Config.Search != nil && s.Config.Search.Index != "" {
+		assets.SetStringAsset("search-script", search.GetSearchScript(s.Config.Search.Index))
 	}
 	s.Assets = assets
 	return nil
@@ -434,15 +443,32 @@ func (s *Site) Build() (err error) {
 	if err != nil {
 		return err
 	}
-	if s.Config.SearchIndex != "" {
-		s.generateSearchIndex()
+	if s.Config.Search != nil {
+		if err := s.generateSearchIndex(); err != nil {
+			return err
+		}
 	}
 	log.Printf("* Built in %s", time.Now().Sub(t))
 	return nil
 }
 
+func (s *Site) isExcludedFromSearch(url string) bool {
+	if s.Config.Search == nil {
+		return false
+	}
+	for _, ex := range s.Config.Search.Exclude {
+		if ex == url {
+			return true
+		}
+	}
+	return false
+}
+
 func (s *Site) generateSearchIndex() error {
 	log.Printf("* Indexing")
+	if s.Config.Search.Index == "" {
+		log.Fatal("missing search.script config")
+	}
 	dir := filepath.Clean(filepath.Join(s.BaseDir, OutDirName))
 	index := indexer.New()
 	n := 0
@@ -461,6 +487,9 @@ func (s *Site) generateSearchIndex() error {
 			return err
 		}
 		url := utils.CleanPermalink(filepath.ToSlash(path[len(dir):]))
+		if s.isExcludedFromSearch(url) {
+			return nil
+		}
 		err = index.AddHTML(url, f)
 		f.Close()
 		if err != nil {
@@ -472,21 +501,21 @@ func (s *Site) generateSearchIndex() error {
 	if err != nil {
 		log.Fatal(err)
 	}
-	f, err := os.Create(filepath.Join(s.BaseDir, OutDirName, s.Config.SearchIndex))
-	if err != nil {
-		return err
-	}
-	defer f.Close()
 	if n == 0 {
 		log.Println("* No documents indexed.")
 		return nil
 	}
-	if _, err := fmt.Fprintf(f, "var searchIndex = "); err != nil {
+	w := bytes.NewBuffer(nil)
+	if err := index.WriteJSON(w); err != nil {
 		return err
 	}
-	err = index.WriteJSON(f)
-	if err != nil {
-		log.Fatal(err)
+	out := w.Bytes()
+	filename := filepath.Join(s.BaseDir, OutDirName, s.Config.Search.Index)
+	if err := os.MkdirAll(filepath.Dir(filename), 0755); err != nil {
+		return err
+	}
+	if err := os.WriteFile(filename, out, 0644); err != nil {
+		return err
 	}
 	log.Printf("* Indexed %d documents.", n)
 	return nil

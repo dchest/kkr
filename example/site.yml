@@ -9,3 +9,8 @@ filters:
 
 markup:
   markdown_angled_quotes: true
+
+search:
+  index: /search/search-index.json
+  exclude:
+    - 404.html

@@ -7,10 +7,6 @@ github.com/dchest/htmlmin
 # github.com/dchest/jsmin v0.0.0-20160823214000-faeced883947
 ## explicit
 github.com/dchest/jsmin
-# github.com/dchest/static-search v0.0.0-20160903151647-3b46ce37a256
-## explicit
-github.com/dchest/static-search/indexer
-github.com/dchest/static-search/indexer/tokenizer
 # github.com/dchest/stemmer v0.0.0-20161207102402-66719a20c4b5
 ## explicit
 github.com/dchest/stemmer

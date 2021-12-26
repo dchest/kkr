@@ -65,6 +65,14 @@ func Hash(s string) []byte {
 	return h.Sum(nil)
 }
 
+// TemplatedHash replaces ":hash" in template with hexadecimal characters of
+// the hash of the input string and returns the result.
+func TemplatedHash(template string, input string) string {
+	// 10 bytes of hash is enough to avoid accidental collisions.
+	hs := NoVowelsHexEncode(Hash(input)[:10])
+	return strings.Replace(template, ":hash", hs, -1)
+}
+
 // WriteStringToFile writes string to a file, making parent directories
 // if they don't exist.
 func WriteStringToFile(filename, data string) error {

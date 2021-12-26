@@ -11,7 +11,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/dchest/kkr/filters"
 	"github.com/dchest/kkr/utils"
@@ -72,6 +71,7 @@ func Load(filename string) (c *Collection, err error) {
 
 // Process processes all assets in the collection.
 func (c *Collection) Process(outdir string) error {
+	fmt.Printf("%v", c.assets)
 	for _, a := range c.assets {
 		if err := c.ProcessAsset(a, c.filters, outdir); err != nil {
 			return err
@@ -80,17 +80,18 @@ func (c *Collection) Process(outdir string) error {
 	return nil
 }
 
+func (c *Collection) SetStringAsset(name, data string) {
+	c.assets[name] = &Asset{
+		Name:      name,
+		OutName:   "$",
+		Result:    data,
+		processed: true,
+	}
+}
+
 // Get returns an asset by name or nil if there's no such asset.
 func (c *Collection) Get(name string) *Asset {
 	return c.assets[name]
-}
-
-// fillTemplate replaces ":hash" in template with hexadecimal characters of
-// hash and returns the result.
-func fillTemplate(template string, hash []byte) string {
-	// 10 bytes of hash is enough to avoid accidental collisions.
-	hs := utils.NoVowelsHexEncode(hash[:10])
-	return strings.Replace(template, ":hash", hs, -1)
 }
 
 func concatFiles(filenames []string, separator []byte) (out []byte, err error) {
@@ -153,7 +154,7 @@ func (c *Collection) ProcessAsset(a *Asset, filters *filters.Collection, outdir 
 	}
 	// Result is filename.
 	// Make file name from hash.
-	a.Result = fillTemplate(a.OutName, utils.Hash(s))
+	a.Result = utils.TemplatedHash(a.OutName, s)
 	// Check that the result is not empty.
 	if a.Result == "" {
 		// Use hash for name.

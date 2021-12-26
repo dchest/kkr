@@ -8,7 +8,7 @@ import (
 
 	"github.com/dchest/stemmer/porter2"
 
-	"github.com/dchest/static-search/indexer/tokenizer"
+	"github.com/dchest/kkr/search/indexer/tokenizer"
 )
 
 type Index struct {

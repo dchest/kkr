@@ -1,0 +1,31 @@
+---
+layout: simple
+title: Search Blog
+---
+<input type="search" id="kkr-search-input"><button id="kkr-search-button">Search</button>
+
+<ul id="kkr-search-results"
+    data-results-per-page="3"
+    data-only-urls="^/blog/"
+    data-clean-title="- Example Website$"
+    data-not-found="Nothing found"
+>
+</ul>
+
+<template id="kkr-search-result-item">
+    <li>
+        <h2><a class="kkr-search-result-title kkr-search-result-href"></a></h2>
+        <p><a class="kkr-search-result-url kkr-search-result-href"></a></p>
+    </li>
+</template>
+
+<template id="kkr-search-result-pagination">
+    <ul class="pagination">
+        <li class="kkr-search-result-page-item page-item">
+            <a class="kkr-search-result-page-link page-link" href="#"></a>
+        </li>
+    </ul>    
+</template>
+
+
+To add a search page like this to your website, see this page source, assets.yml ($search-script), and site.yml (search).

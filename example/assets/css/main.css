@@ -69,3 +69,32 @@ a.btn:hover {
 a.btn:active {
   box-shadow: inset 0 3px 6px rgba(0, 0, 0, 0.1);
 }
+
+ul#kkr-search-results {
+  padding-left: 0;
+  margin-left: 0;
+}
+
+#kkr-search-results.not-found {
+  color: gray;
+}
+
+ul.pagination {
+  list-style: none;
+  padding-left: 0;
+  margin-left: 0;
+}
+
+ul.pagination li {
+  display: inline;
+}
+
+.page-link {
+  padding: 3px;
+}
+
+.page-item.active > a {
+  color: gray;
+  text-decoration: none;
+  border: 1px solid #ccc;
+}
