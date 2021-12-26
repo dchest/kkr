@@ -12,34 +12,49 @@ import (
 )
 
 type Watcher struct {
-	dir          string
-	excludeGlobs []string
-	state        map[string]os.FileInfo
-	interval     time.Duration
-	closed       chan bool
+	dir           string
+	excludeGlobs  []string
+	state         map[string]os.FileInfo
+	interval      time.Duration
+	sleepInterval time.Duration
+	closed        chan bool
 
 	// event channels
 	Change chan bool
 	Error  chan error
 }
 
-const DefaultInterval = 1 * time.Second
+const (
+	DefaultInterval = 1 * time.Second
+	SleepAfter      = 5 * time.Minute
+)
 
 // Watch polls the given directory and subdirectories and files inside it,
-// exluding the given globs, for changes with the given interval.
+// excluding the given globs, for changes with the given interval.
+//
+// When there was no change for the given interval in 5 minutes, interval
+// changes to sleepInterval (interval * 5 by default).
+// It's back to normal interval if a change is detected.
+// If sleepInterval is negative, don't sleep.
 //
 // It returns a Watcher or an error.
-func Watch(dir string, excludeGlobs []string, interval time.Duration) (w *Watcher, err error) {
+func Watch(dir string, excludeGlobs []string, interval, sleepInterval time.Duration) (w *Watcher, err error) {
 	if interval == 0 {
 		interval = DefaultInterval
 	}
+	if sleepInterval < 0 {
+		sleepInterval = interval
+	} else if sleepInterval == 0 {
+		sleepInterval = DefaultInterval * 5
+	}
 	w = &Watcher{
-		dir:          dir,
-		excludeGlobs: excludeGlobs,
-		interval:     interval,
-		Change:       make(chan bool),
-		Error:        make(chan error),
-		closed:       make(chan bool),
+		dir:           dir,
+		excludeGlobs:  excludeGlobs,
+		interval:      interval,
+		sleepInterval: sleepInterval,
+		Change:        make(chan bool),
+		Error:         make(chan error),
+		closed:        make(chan bool),
 	}
 	// Get initial state
 	w.state, err = w.getState()
@@ -52,16 +67,25 @@ func Watch(dir string, excludeGlobs []string, interval time.Duration) (w *Watche
 }
 
 func (w *Watcher) start() {
+	lastChangeTime := time.Now()
+	currentInterval := w.interval
 	for {
 		hasChange, err := w.check()
 		switch {
 		case err != nil:
 			w.Error <- err
 		case hasChange:
+			now := time.Now()
+			if now.Sub(lastChangeTime) > SleepAfter {
+				currentInterval = w.sleepInterval
+			} else {
+				currentInterval = w.interval
+			}
+			lastChangeTime = now
 			w.Change <- true
 		}
 		select {
-		case <-time.After(w.interval):
+		case <-time.After(currentInterval):
 			continue
 		case <-w.closed:
 			return

@@ -610,7 +610,7 @@ func (s *Site) StartWatching() (err error) {
 		filepath.Join(s.BaseDir, ".git"),
 		".DS_Store",
 	}
-	watcher, err := fspoll.Watch(s.BaseDir, excludeGlobs, 0)
+	watcher, err := fspoll.Watch(s.BaseDir, excludeGlobs, 0, 0)
 	if err != nil {
 		return err
 	}
