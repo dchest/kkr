@@ -7,10 +7,9 @@ package utils
 
 import (
 	"bytes"
-	"crypto/md5"
+	"crypto/sha256"
 	"fmt"
 	"html/template"
-	"io"
 	"io/ioutil"
 	"net/url"
 	"os"
@@ -58,11 +57,10 @@ func StripEndSlash(s string) string {
 	return s
 }
 
-// Hash returns an MD5 hash of the given string.
+// Hash returns an SHA256 hash of the given string.
 func Hash(s string) []byte {
-	h := md5.New()
-	io.WriteString(h, s)
-	return h.Sum(nil)
+	h := sha256.Sum256([]byte(s))
+	return h[:]
 }
 
 // TemplatedHash replaces ":hash" in template with hexadecimal characters of
