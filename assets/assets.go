@@ -71,7 +71,6 @@ func Load(filename string) (c *Collection, err error) {
 
 // Process processes all assets in the collection.
 func (c *Collection) Process(outdir string) error {
-	fmt.Printf("%v", c.assets)
 	for _, a := range c.assets {
 		if err := c.ProcessAsset(a, c.filters, outdir); err != nil {
 			return err
