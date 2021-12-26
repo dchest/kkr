@@ -80,6 +80,13 @@ func (w *Watcher) getState() (map[string]os.FileInfo, error) {
 			if err != nil {
 				return err
 			}
+			if !matched {
+				m, err := filepath.Match(glob, fi.Name())
+				if err != nil {
+					return err
+				}
+				matched = m
+			}
 			if matched {
 				// Skip excluded path
 				if fi.IsDir() {

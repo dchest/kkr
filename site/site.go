@@ -605,7 +605,11 @@ func (s *Site) Serve(addr string) error {
 
 func (s *Site) StartWatching() (err error) {
 	// Watch every subdirectory of site except for output directory and .git.
-	excludeGlobs := []string{filepath.Join(s.BaseDir, OutDirName), filepath.Join(s.BaseDir, ".git")}
+	excludeGlobs := []string{
+		filepath.Join(s.BaseDir, OutDirName),
+		filepath.Join(s.BaseDir, ".git"),
+		".DS_Store",
+	}
 	watcher, err := fspoll.Watch(s.BaseDir, excludeGlobs, 0)
 	if err != nil {
 		return err
