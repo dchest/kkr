@@ -53,7 +53,6 @@
         const queryWords = (removeAccents(query).match(/\w{1,}/g) || []).map(s => s.toLowerCase());
         // const lastWord = queryWords.pop(); // XXX incomplete last word search disabled, see below.
         const words = queryWords.filter(w => !isStopWord(w)).map(stemmer);
-
         const found = {};
         words.forEach(w => {
             if (searchIndex.words[w]) {
