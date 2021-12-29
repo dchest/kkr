@@ -107,9 +107,12 @@ func (n *Index) AddText(url, title string, r io.Reader) error {
 }
 
 func (n *Index) AddHTML(url string, r io.Reader) error {
-	title, content, err := parseHTML(r)
+	title, content, indexable, err := parseHTML(r)
 	if err != nil {
 		return err
+	}
+	if !indexable {
+		return nil
 	}
 	doc := n.newDocument(url, title)
 	n.addString(doc, title, n.HTMLTitleWeight)

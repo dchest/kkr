@@ -10,29 +10,48 @@ import (
 )
 
 type htmlParser struct {
-	title string
-	b     bytes.Buffer
-	z     *html.Tokenizer
+	title   string
+	b       bytes.Buffer
+	noIndex bool // set to true if has meta name="robots" or name="kkr-search" and content="noindex">
 }
 
 func (p *htmlParser) parseMeta(n *html.Node) {
-	indexable := false
+	consume := false
+	robots := false
 	for _, a := range n.Attr {
 		if a.Key == "name" {
 			v := strings.ToLower(a.Val)
 			if v == "keywords" || v == "description" {
-				indexable = true
+				consume = true
+			} else if v == "robots" || v == "kkr-search" {
+				robots = true
 			}
 		}
 	}
-	if !indexable {
+	if !consume && !robots {
 		return
 	}
 	for _, a := range n.Attr {
 		if a.Key == "content" {
-			p.consumeString(a.Val)
+			if consume {
+				p.consumeString(a.Val)
+			} else if robots {
+				p.noIndex = false
+			}
 		}
 	}
+}
+
+func (p *htmlParser) skipNoIndexElement(n *html.Node) bool {
+	for _, a := range n.Attr {
+		if a.Key == "data-kkr-search" {
+			v := strings.ToLower(a.Val)
+			if v == "noindex" {
+				return true
+			}
+		}
+	}
+	return false
 }
 
 func (p *htmlParser) parseImg(n *html.Node) {
@@ -70,6 +89,9 @@ func (p *htmlParser) parseNoscript(n *html.Node) {
 }
 
 func (p *htmlParser) parseNode(n *html.Node) {
+	if p.noIndex {
+		return
+	}
 	switch n.Type {
 	case html.DocumentNode:
 		// Parse children
@@ -90,9 +112,11 @@ func (p *htmlParser) parseNode(n *html.Node) {
 		case atom.Script, atom.Style:
 			// skip children
 		default:
-			// Parse children
-			if c := n.FirstChild; c != nil {
-				p.parseNode(c)
+			if !p.skipNoIndexElement(n) {
+				// Parse children
+				if c := n.FirstChild; c != nil {
+					p.parseNode(c)
+				}
 			}
 		}
 	case html.TextNode:
@@ -121,11 +145,15 @@ func (p *htmlParser) Title() string {
 	return p.title
 }
 
-func parseHTML(r io.Reader) (title, content string, err error) {
+func (p *htmlParser) IsIndexable() bool {
+	return !p.noIndex
+}
+
+func parseHTML(r io.Reader) (title, content string, indexable bool, err error) {
 	var p htmlParser
 	err = p.Parse(r)
 	if err != nil {
 		return
 	}
-	return p.Title(), p.Content(), nil
+	return p.Title(), p.Content(), p.IsIndexable(), nil
 }
