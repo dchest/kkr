@@ -15,6 +15,7 @@ func isStopWord(w string) bool {
 
 var stopWordsMap map[string]interface{} // will be filled on init
 var stopWordsList = []string{
+	"a",
 	"all",
 	"am",
 	"an",

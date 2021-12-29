@@ -3,7 +3,7 @@
     // Search engine
     const STOP_WORDS = {};
     [
-        "all", "am", "an", "and", "any", "are", "aren't", "as", "at", "be",
+        "a", "all", "am", "an", "and", "any", "are", "aren't", "as", "at", "be",
         "because", "been", "before", "being", "below", "between", "both",
         "but", "by", "can't", "cannot", "could", "couldn't", "did", "didn't",
         "do", "does", "doesn't", "doing", "don't", "down", "for", "from",

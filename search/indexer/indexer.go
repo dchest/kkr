@@ -72,7 +72,7 @@ func (n *Index) addString(doc int, text string, wordWeight float64) {
 	tk := tokenizer.Words(text)
 	for tk.Next() {
 		w := tk.Token()
-		if len(w) < 2 || isStopWord(w) {
+		if len(w) < 1 || isStopWord(w) {
 			continue
 		}
 		wordcnt[porter2.Stemmer.Stem(removeAccents(w))] += wordWeight
