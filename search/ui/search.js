@@ -138,8 +138,7 @@
 
     function handleSearchParams() {
         const url = new URL(window.location);
-        const query = url.searchParams.get('query');
-        if (!query) return;
+        const query = url.searchParams.get('query') || "";
         const page = url.searchParams.get('page') || 1;
         const input = document.querySelector('input#kkr-search-input');
         input.value = query;
@@ -148,16 +147,17 @@
 
     function setSearchParams(query, page) {
         const url = new URL(window.location);
-        if (query) url.searchParams.set('query', query);
+        url.searchParams.set('query', query || "");
         url.searchParams.set('page', page || 1)
         window.history.pushState({}, '', url);
-        doSearch(query || url.searchParams.get('query'), page);
+        doSearch(url.searchParams.get('query'), page);
     }
 
     async function doSearch(query, page) {
         const container = document.querySelector('#kkr-search-results');
         container.classList.add('loading');
-        getSearcher().then(searcher => displayResults(searcher(query), page));
+        console.log('Doing search', query, page);
+        getSearcher().then(searcher => displayResults(query ? searcher(query) : null, page));
     }
 
     function displayResults(results, page) {
@@ -165,6 +165,8 @@
         container.classList.remove('loading');
         container.classList.remove('not-found');
         container.innerHTML = "";
+
+        if (results == null) return;
 
         if (container.dataset.onlyUrls) {
             const re = new RegExp(container.dataset.onlyUrls);
@@ -219,7 +221,7 @@
         ev.preventDefault();
         const p = parseInt(ev.target.textContent);
         if (!p) return;
-        setSearchParams(null, p);
+        setSearchParams((new URL(window.location)).searchParams.get('query'), p);
         document.querySelector('input#kkr-search-input').scrollIntoView({ behavior: "smooth", block: "start" })
     }
 
@@ -228,7 +230,7 @@
         if (!input) return false;
 
         input.addEventListener('keydown', ev => {
-            if (ev.key === "Enter" && input.value !== "") {
+            if (ev.key === "Enter") {
                 setSearchParams(input.value, 1);
             }
         });
@@ -236,9 +238,7 @@
         const button = document.querySelector('#kkr-search-button');
         if (button) {
             button.addEventListener('click', () => {
-                if (input.value !== "") {
                     setSearchParams(input.value, 1);
-                }
             });
         }
         return true;
