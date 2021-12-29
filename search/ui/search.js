@@ -156,7 +156,6 @@
     async function doSearch(query, page) {
         const container = document.querySelector('#kkr-search-results');
         container.classList.add('loading');
-        console.log('Doing search', query, page);
         getSearcher().then(searcher => displayResults(query ? searcher(query) : null, page));
     }
 
