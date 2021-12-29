@@ -245,7 +245,7 @@
         const button = document.querySelector('#kkr-search-button');
         if (button) {
             button.addEventListener('click', () => {
-                    setSearchParams(input.value, 1);
+                setSearchParams(input.value, 1);
             });
         }
         return true;
