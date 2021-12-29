@@ -49,10 +49,18 @@
         return out;
     }
 
+    function stem(w) {
+        // Don't stem words that contain digits,
+        // since this JS stemmer relies on digits
+        // for internal work, for some reason.
+        return /\d/.test(w) ? w : stemmer(w); // stemmer() comes from stemmer.min.js
+    }
+
     function search(searchIndex, query) {
         const queryWords = (removeAccents(query).match(/\w{1,}/g) || []).map(s => s.toLowerCase());
         // const lastWord = queryWords.pop(); // XXX incomplete last word search disabled, see below.
-        const words = queryWords.filter(w => !isStopWord(w)).map(stemmer);
+        const words = queryWords.filter(w => !isStopWord(w)).map(stem);
+
         const found = {};
         words.forEach(w => {
             if (searchIndex.words[w]) {
