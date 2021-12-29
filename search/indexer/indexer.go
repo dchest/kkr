@@ -67,6 +67,13 @@ func (n *Index) newDocument(url, title string) int {
 	return len(n.Docs) - 1
 }
 
+func stem(word string) string {
+	if strings.ContainsAny(word, "0123456789") {
+		return word // don't stem words with digits
+	}
+	return porter2.Stemmer.Stem(word)
+}
+
 func (n *Index) addString(doc int, text string, wordWeight float64) {
 	wordcnt := make(map[string]float64)
 	tk := tokenizer.Words(text)
@@ -75,7 +82,7 @@ func (n *Index) addString(doc int, text string, wordWeight float64) {
 		if len(w) < 1 || isStopWord(w) {
 			continue
 		}
-		wordcnt[porter2.Stemmer.Stem(removeAccents(w))] += wordWeight
+		wordcnt[stem(removeAccents(w))] += wordWeight
 		wordWeight /= 1.1
 		if wordWeight < 0.0001 {
 			wordWeight = 0.0001
