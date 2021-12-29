@@ -20,7 +20,7 @@
                 continue; // skip composed accent
             }
             const s = ACCENTS[c] || String.fromCharCode(c);
-            if ((i == 0 || i == w.length-1) && s == "'") {
+            if ((i == 0 || i == w.length - 1) && s == "'") {
                 continue; // exclude apostrophes at the beginning and at the end
             }
             out += s;
@@ -98,8 +98,7 @@
         });
 
         rankDocPairs.sort((a, b) => b[1] - a[1]);
-        return rankDocPairs.map(dr => dr[0])
-            .map(id => searchIndex.docs[id])
+        return rankDocPairs.map(dr => searchIndex.docs[dr[0]])
             .map(d => ({
                 title: d.t,
                 url: d.u
