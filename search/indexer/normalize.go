@@ -1,5 +1,7 @@
 package indexer
 
+import "strings"
+
 func init() {
 	accentsMap = make(map[rune]rune)
 	for _, v := range accents {
@@ -9,7 +11,7 @@ func init() {
 	}
 }
 
-func removeAccents(s string) string {
+func replaceAccentsAndApostrophe(s string) string {
 	runes := []rune(s)
 	for i, c := range runes {
 		if c >= 768 && c <= 879 {
@@ -21,6 +23,14 @@ func removeAccents(s string) string {
 		}
 	}
 	return string(runes)
+}
+
+func trimApostrophes(s string) string {
+	return strings.Trim(s, "'")
+}
+
+func normalizeWord(s string) string {
+	return trimApostrophes(replaceAccentsAndApostrophe(strings.ToLower(s)))
 }
 
 var accentsMap map[rune]rune // will be filled on init
@@ -39,4 +49,5 @@ var accents = []struct {
 	{[]rune{'œ'}, 'o'}, // oe, but we need one rune
 	{[]rune{'ù', 'ú', 'û', 'ü'}, 'u'},
 	{[]rune{'ý', 'ÿ'}, 'y'},
+	{[]rune{'’'}, '\''}, // apostrophe
 }

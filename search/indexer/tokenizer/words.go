@@ -15,8 +15,12 @@ func Words(input string) Tokenizer {
 	return &words{input: input}
 }
 
+func isApostrophe(r rune) bool {
+	return r == '\'' || r == '’'
+}
+
 func isWordRune(r rune) bool {
-	return unicode.IsLetter(r) || unicode.IsNumber(r) || r == '%' || r == '$'
+	return unicode.IsLetter(r) || unicode.IsNumber(r) || isApostrophe(r) || r == '%' || r == '$'
 }
 
 func isNotWordRune(r rune) bool {

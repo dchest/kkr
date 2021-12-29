@@ -78,11 +78,11 @@ func (n *Index) addString(doc int, text string, wordWeight float64) {
 	wordcnt := make(map[string]float64)
 	tk := tokenizer.Words(text)
 	for tk.Next() {
-		w := tk.Token()
+		w := normalizeWord(tk.Token())
 		if len(w) < 1 || isStopWord(w) {
 			continue
 		}
-		wordcnt[stem(removeAccents(w))] += wordWeight
+		wordcnt[stem(w)] += wordWeight
 		wordWeight /= 1.1
 		if wordWeight < 0.0001 {
 			wordWeight = 0.0001

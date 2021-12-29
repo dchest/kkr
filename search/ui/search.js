@@ -1,52 +1,31 @@
 (() => {
 
     // Search engine
-    const STOP_WORDS = {};
-    [
-        "a", "all", "am", "an", "and", "any", "are", "aren't", "as", "at", "be",
-        "because", "been", "before", "being", "below", "between", "both",
-        "but", "by", "can't", "cannot", "could", "couldn't", "did", "didn't",
-        "do", "does", "doesn't", "doing", "don't", "down", "for", "from",
-        "further", "had", "hadn't", "has", "hasn't", "have", "haven't",
-        "having", "he", "he'd", "he'll", "he's", "her", "here", "here's",
-        "hers", "herself", "him", "himself", "his", "how", "how's", "i'd",
-        "i'll", "i'm", "i've", "if", "in", "into", "is", "isn't", "it", "it's",
-        "its", "itself", "let's", "me", "more", "most", "mustn't", "my",
-        "myself", "no", "nor", "not", "of", "off", "on", "once", "only", "or",
-        "other", "ought", "our", "ours ", "ourselves", "out", "over", "own",
-        "same", "shan't", "she", "she'd", "she'll", "she's", "should",
-        "shouldn't", "so", "some", "such", "than", "that", "that's", "the",
-        "their", "theirs", "them", "themselves", "then", "there", "there's",
-        "these", "they", "they'd", "they'll", "they're", "they've", "this",
-        "those", "through", "to", "too", "under", "until", "up", "very", "was",
-        "wasn't", "we", "we'd", "we'll", "we're", "we've", "were", "weren't",
-        "what", "what's", "when", "when's", "where", "where's", "which",
-        "while", "who", "who's", "whom", "why", "why's", "with", "won't",
-        "would", "wouldn't", "you", "you'd", "you'll", "you're", "you've",
-        "your", "yours", "yourself", "yourselves"
-    ].forEach(w => { STOP_WORDS[w] = true });
-
-    function isStopWord(w) { return !!STOP_WORDS[w]; }
+    const STOP_WORDS = new Set("__KKR_STOP_WORDS__".split(' ')); // stop words set by kkr when generating a site
+    const isStopWord = w => STOP_WORDS.has(w);
 
     var ACCENTS = {
         224: 'a', 225: 'a', 226: 'a', 227: 'a', 228: 'a', 229: 'a', 230: 'a',
         231: 'c', 232: 'e', 233: 'e', 234: 'e', 235: 'e', 236: 'i', 237: 'i',
         238: 'i', 239: 'i', 241: 'n', 242: 'o', 243: 'o', 244: 'o', 245: 'o',
         246: 'o', 339: 'o', 249: 'u', 250: 'u', 251: 'u', 252: 'u', 253: 'y',
-        255: 'y'
+        255: 'y', 8217: "'"
     };
 
-    function removeAccents(w) {
-        var out = '', rep;
-        for (var i = 0; i < w.length; i++) {
+    function normalizeWord(w) {
+        let out = '';
+        for (let i = 0; i < w.length; i++) {
             c = w.charCodeAt(i);
             if (c >= 768 && c <= 879) {
                 continue; // skip composed accent
             }
-            rep = ACCENTS[c];
-            out += rep ? rep : w.charAt(i);
+            const s = ACCENTS[c] || String.fromCharCode(c);
+            if ((i == 0 || i == w.length-1) && s == "'") {
+                continue; // exclude apostrophes at the beginning and at the end
+            }
+            out += s;
         }
-        return out;
+        return out.toLowerCase();
     }
 
     function stem(w) {
@@ -57,7 +36,7 @@
     }
 
     function search(searchIndex, query) {
-        const queryWords = (removeAccents(query).match(/\w{1,}/g) || []).map(s => s.toLowerCase());
+        const queryWords = (query.match(/[\p{L}\d'’]{1,}/gu) || []).map(normalizeWord);
         // const lastWord = queryWords.pop(); // XXX incomplete last word search disabled, see below.
         const words = queryWords.filter(w => !isStopWord(w)).map(stem);
 
@@ -128,7 +107,7 @@
     }
 
     // UI
-    const SEARCH_INDEX_URL = "__KKR_SEARCH_INDEX_URL__";  // actual location URL by kkr when generating a site
+    const SEARCH_INDEX_URL = "__KKR_SEARCH_INDEX_URL__";  // actual location set by kkr when generating a site
 
     let searcher;
 
@@ -142,7 +121,6 @@
             });
         // TODO error reporting
     }
-
 
     function handleSearchParams() {
         const url = new URL(window.location);
