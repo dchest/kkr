@@ -4,7 +4,7 @@
     const STOP_WORDS = new Set("__KKR_STOP_WORDS__".split(' ')); // stop words set by kkr when generating a site
     const isStopWord = w => STOP_WORDS.has(w);
 
-    var ACCENTS = {
+    const ACCENTS = {
         224: 'a', 225: 'a', 226: 'a', 227: 'a', 228: 'a', 229: 'a', 230: 'a',
         231: 'c', 232: 'e', 233: 'e', 234: 'e', 235: 'e', 236: 'i', 237: 'i',
         238: 'i', 239: 'i', 241: 'n', 242: 'o', 243: 'o', 244: 'o', 245: 'o',

@@ -20,7 +20,7 @@ func isApostrophe(r rune) bool {
 }
 
 func isWordRune(r rune) bool {
-	return unicode.IsLetter(r) || unicode.IsNumber(r) || isApostrophe(r) || r == '%' || r == '$'
+	return unicode.IsLetter(r) || unicode.IsNumber(r) || isApostrophe(r)
 }
 
 func isNotWordRune(r rune) bool {
