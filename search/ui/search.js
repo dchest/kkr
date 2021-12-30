@@ -74,16 +74,6 @@
         });
         // console.log('docs', matchesByDoc);
 
-        /*
-        const foundDocs = [];
-        Object.keys(docs).forEach(id => {
-            if (docs[id] >= words.length - 1) { // allow 1 missed word
-                foundDocs.push(+id);
-            }
-        });
-        console.log('foundDocs', foundDocs);
-        */
-
         // Rank documents by word count.
         const numDocsFound = Object.keys(matchesByDoc).length;
         const numDocsTotal = searchIndex.docs.length;
