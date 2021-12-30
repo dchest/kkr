@@ -37,7 +37,6 @@
 
     function search(searchIndex, query) {
         const queryWords = (query.match(/[\p{L}\d'’]{1,}/gu) || []).map(normalizeWord);
-        // const lastWord = queryWords.pop(); // XXX incomplete last word search disabled, see below.
         const words = queryWords.filter(w => !isStopWord(w)).map(stem);
 
         const found = {}; // maps words to documents and frequencies
@@ -46,24 +45,6 @@
                 found[w] = searchIndex.words[w];
             }
         });
-
-        // Consider last word in query a prefix and find the correct
-        // word that matches it among all indexed words.
-        // XXX Don't need this with current version.
-        /*
-        if (lastWord) {
-            const stemmedLastWord = stemmer(lastWord);
-            for (let indexWord of Object.keys(searchIndex.words)) {
-                if (indexWord[0] === lastWord[0]) {
-                    if (indexWord.indexOf(lastWord) === 0 ||
-                        indexWord.indexOf(stemmedLastWord) === 0) {
-                        found[indexWord] = searchIndex.words[indexWord];
-                        break;
-                    }
-                }
-            }
-        }
-        */
 
         const matchesByDoc = {}; // maps docs to the number of matched query words
         Object.values(found).forEach(arr => {
@@ -86,7 +67,7 @@
                 const freq = typeof dc === "number" ? 1 : dc[1];
                 const idf = Math.log(numDocsTotal / numDocsWithWord);
                 const rank = freq * idf;
-                ranksByDoc[d] = (ranksByDoc[d] || 0) + rank; //(r * matchesByDoc[d]);
+                ranksByDoc[d] = (ranksByDoc[d] || 0) + rank;
             });
         });
         // console.log('ranksByDoc', ranksByDoc);
