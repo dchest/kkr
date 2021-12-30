@@ -56,7 +56,6 @@
         // console.log('docs', matchesByDoc);
 
         // Rank documents by word count.
-        const numDocsFound = Object.keys(matchesByDoc).length;
         const numDocsTotal = searchIndex.docs.length;
         const ranksByDoc = {}; // maps docs to a calculated rank
         Object.keys(found).forEach(word => {
@@ -64,9 +63,8 @@
             const numDocsWithWord = val.length;
             val.forEach(dc => {
                 const d = typeof dc === "number" ? dc : dc[0];
-                const freq = typeof dc === "number" ? 1 : dc[1];
-                const idf = Math.log(numDocsTotal / numDocsWithWord);
-                const rank = freq * idf;
+                const weight = typeof dc === "number" ? 1 : dc[1];
+                const rank = weight * Math.log(numDocsTotal / numDocsWithWord);
                 ranksByDoc[d] = (ranksByDoc[d] || 0) + rank;
             });
         });
