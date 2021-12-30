@@ -163,6 +163,7 @@
         });
 
         if (pageCount > 1) {
+            const url = new URL(window.location);
             const pagination = document.importNode(document.querySelector("template#kkr-search-result-pagination").content, true);
             const pages = [];
             for (let i = 1; i <= pageCount; i++) {
@@ -170,6 +171,8 @@
                 if (i == page) pageItem.classList.add('active');
                 const link = pageItem.querySelector(".kkr-search-result-page-link");
                 link.textContent = i;
+                url.searchParams.set('page', i);
+                link.href = url.toString();
                 link.addEventListener('click', handlePageClick)
                 pages.push(pageItem);
             }
