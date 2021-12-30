@@ -490,12 +490,14 @@ func (s *Site) generateSearchIndex() error {
 		if s.isExcludedFromSearch(url) {
 			return nil
 		}
-		err = index.AddHTML(url, f)
+		indexed, err := index.AddHTML(url, f)
 		f.Close()
 		if err != nil {
 			return err
 		}
-		n++
+		if indexed {
+			n++
+		}
 		return nil
 	})
 	if err != nil {

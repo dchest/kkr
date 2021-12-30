@@ -40,7 +40,7 @@
         // const lastWord = queryWords.pop(); // XXX incomplete last word search disabled, see below.
         const words = queryWords.filter(w => !isStopWord(w)).map(stem);
 
-        const found = {};
+        const found = {}; // maps words to documents and frequencies
         words.forEach(w => {
             if (searchIndex.words[w]) {
                 found[w] = searchIndex.words[w];
@@ -65,32 +65,41 @@
         }
         */
 
-        const docs = {};
+        const matchesByDoc = {}; // maps docs to the number of matched query words
         Object.values(found).forEach(arr => {
             arr.forEach(dc => {
                 const d = typeof dc === "number" ? dc : dc[0];
-                docs[d] = (docs[d] || 0) + 1;
+                matchesByDoc[d] = (matchesByDoc[d] || 0) + 1;
             });
         });
+        // console.log('docs', matchesByDoc);
 
+        /*
         const foundDocs = [];
         Object.keys(docs).forEach(id => {
             if (docs[id] >= words.length - 1) { // allow 1 missed word
                 foundDocs.push(+id);
             }
-        })
+        });
+        console.log('foundDocs', foundDocs);
+        */
 
         // Rank documents by word count.
-        const ranksByDoc = {};
-        Object.values(found).forEach(arr => {
-            arr.forEach(dc => {
+        const numDocsFound = Object.keys(matchesByDoc).length;
+        const numDocsTotal = searchIndex.docs.length;
+        const ranksByDoc = {}; // maps docs to a calculated rank
+        Object.keys(found).forEach(word => {
+            const val = found[word];
+            const numDocsWithWord = val.length;
+            val.forEach(dc => {
                 const d = typeof dc === "number" ? dc : dc[0];
-                if (foundDocs.includes(d)) {
-                    const r = typeof dc === "number" ? 1 : dc[1];
-                    ranksByDoc[d] = (ranksByDoc[d] || 0) + r;
-                }
+                const freq = typeof dc === "number" ? 1 : dc[1];
+                const idf = Math.log(numDocsTotal / numDocsWithWord);
+                const rank = freq * idf;
+                ranksByDoc[d] = (ranksByDoc[d] || 0) + rank; //(r * matchesByDoc[d]);
             });
         });
+        // console.log('ranksByDoc', ranksByDoc);
 
         const rankDocPairs = [];
         Object.keys(ranksByDoc).forEach(k => {
@@ -98,6 +107,7 @@
         });
 
         rankDocPairs.sort((a, b) => b[1] - a[1]);
+        // console.log('rankDocPairs sorted', rankDocPairs);
         return rankDocPairs.map(dr => searchIndex.docs[dr[0]])
             .map(d => ({
                 title: d.t,

@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"math"
 	"strings"
 
 	"github.com/dchest/stemmer/porter2"
@@ -14,8 +15,9 @@ import (
 type Index struct {
 	Docs       []*Document              `json:"docs"`
 	Words      map[string][]interface{} `json:"words"`
-	wordsToDoc map[string]map[int]float64
+	wordsToDoc map[string]map[int]int
 
+	ContentWordWeight      float64 `json:"-"`
 	HTMLTitleWeight        float64 `json:"-"`
 	HTMLURLComponentWeight float64 `json:"-"`
 }
@@ -29,24 +31,31 @@ func New() *Index {
 	return &Index{
 		Docs:                   make([]*Document, 0),
 		Words:                  make(map[string][]interface{}),
-		wordsToDoc:             make(map[string]map[int]float64), // words => doc => weight
-		HTMLTitleWeight:        5,
-		HTMLURLComponentWeight: 10,
+		wordsToDoc:             make(map[string]map[int]int), // words => doc => weight
+		ContentWordWeight:      1,
+		HTMLTitleWeight:        3,
+		HTMLURLComponentWeight: 3,
 	}
 }
 
 func (n *Index) WriteJSON(w io.Writer) error {
+	// Normalize weight
+	minWeight := math.MaxInt
+	for _, m := range n.wordsToDoc {
+		for _, weight := range m {
+			if weight < minWeight {
+				minWeight = weight
+			}
+		}
+	}
+	minWeight -= 1
 	for word, m := range n.wordsToDoc {
 		for doc, weight := range m {
-			// Normalize weight
-			normWeight := int(weight * 1000)
-			if normWeight < 1 {
-				normWeight = 1
-			}
+			normWeight := weight - minWeight
 			if normWeight == 1 {
 				n.Words[word] = append(n.Words[word], doc)
 			} else {
-				n.Words[word] = append(n.Words[word], [2]int{doc, normWeight})
+				n.Words[word] = append(n.Words[word], [2]interface{}{doc, normWeight})
 			}
 		}
 	}
@@ -56,10 +65,10 @@ func (n *Index) WriteJSON(w io.Writer) error {
 func (n *Index) addWord(word string, doc int, weight float64) {
 	m := n.wordsToDoc[word]
 	if m == nil {
-		m = make(map[int]float64)
+		m = make(map[int]int)
 		n.wordsToDoc[word] = m
 	}
-	m[doc] += weight
+	m[doc] += int(weight * 100)
 }
 
 func (n *Index) newDocument(url, title string) int {
@@ -83,17 +92,11 @@ func (n *Index) addString(doc int, text string, wordWeight float64) {
 			continue
 		}
 		wordcnt[stem(w)] += wordWeight
-		wordWeight /= 1.1
-		if wordWeight < 0.0001 {
-			wordWeight = 0.0001
-		}
 	}
+	// Scale each word weight and add it
 	for w, c := range wordcnt {
-		scaled := float64(c) / float64(len(wordcnt))
-		if scaled < 0.0001 {
-			scaled = 0.0001
-		}
-		n.addWord(w, doc, scaled) // scaled
+		scaled := c / float64(len(wordcnt))
+		n.addWord(w, doc, scaled)
 	}
 }
 
@@ -106,22 +109,33 @@ func (n *Index) AddText(url, title string, r io.Reader) error {
 	return nil
 }
 
-func (n *Index) AddHTML(url string, r io.Reader) error {
+func (n *Index) AddHTML(url string, r io.Reader) (indexed bool, err error) {
 	title, content, indexable, err := parseHTML(r)
 	if err != nil {
-		return err
+		return false, err
 	}
 	if !indexable {
-		return nil
+		return false, nil
 	}
 	doc := n.newDocument(url, title)
-	n.addString(doc, title, n.HTMLTitleWeight)
-	n.addString(doc, content, 1)
-	// Add URL components.
+
+	// Adjust word weight according to document level
 	url = strings.TrimPrefix(url, "http://")
 	url = strings.TrimPrefix(url, "https://")
 	url = strings.TrimPrefix(url, "www.")
+	url = strings.TrimSuffix(url, "/")
+
+	level := float64(strings.Count(url, "/"))
+	if level == 0 {
+		level = 1
+	}
+
+	n.addString(doc, title, n.HTMLTitleWeight/level)
+	n.addString(doc, content, 0.5+0.5*(n.ContentWordWeight/level))
+	// Add URL components.
 	url = strings.ReplaceAll(url, "/", " ")
-	n.addString(doc, url, n.HTMLURLComponentWeight)
-	return nil
+	url = strings.ReplaceAll(url, "_", " ")
+	url = strings.ReplaceAll(url, "-", " ")
+	n.addString(doc, url, n.HTMLURLComponentWeight/level)
+	return true, nil
 }
