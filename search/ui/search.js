@@ -70,12 +70,8 @@
         });
         // console.log('ranksByDoc', ranksByDoc);
 
-        const rankDocPairs = [];
-        Object.keys(ranksByDoc).forEach(k => {
-            rankDocPairs.push([k, ranksByDoc[k]]);
-        });
+        const rankDocPairs = Object.entries(ranksByDoc).sort((a, b) => b[1] - a[1]);
 
-        rankDocPairs.sort((a, b) => b[1] - a[1]);
         // console.log('rankDocPairs sorted', rankDocPairs);
         return rankDocPairs.map(dr => searchIndex.docs[dr[0]])
             .map(d => ({
