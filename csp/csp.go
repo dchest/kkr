@@ -3,7 +3,6 @@ package csp
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"regexp"
 	"sort"
@@ -56,7 +55,6 @@ func directivesToString(m map[string][]string) string {
 		i++
 	}
 	sort.Strings(keys)
-	log.Printf("%v", keys)
 	out := make([]string, len(m))
 	i = 0
 	for _, k := range keys {
