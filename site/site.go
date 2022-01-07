@@ -9,6 +9,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"encoding/xml"
+	"errors"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -19,6 +20,7 @@ import (
 	"time"
 	"unicode/utf8"
 
+	"github.com/dchest/kkr/csp"
 	"github.com/dchest/kkr/search"
 	"github.com/dchest/kkr/search/indexer"
 
@@ -33,6 +35,7 @@ import (
 const (
 	ConfigFileName = "site.yml"
 	AssetsFileName = "assets.yml"
+	CSPFileName    = "csp.yml"
 
 	AssetsDirName   = "assets" // just a convention, currently used for watching only
 	IncludesDirName = "includes"
@@ -103,6 +106,7 @@ type Site struct {
 	Assets      *assets.Collection
 	Layouts     *layouts.Collection
 	PageFilters *filters.Collection
+	CSP         csp.Directives
 	Includes    map[string]string
 
 	buildQueue  chan bool
@@ -155,6 +159,16 @@ func (s *Site) LoadAssets() error {
 		assets.SetStringAsset("search-script", search.GetSearchScript(s.Config.Search.Index))
 	}
 	s.Assets = assets
+	return nil
+}
+
+func (s *Site) LoadCSP() error {
+	log.Printf("* Loading CSP.")
+	csp, err := csp.Load(CSPFileName)
+	if err != nil {
+		return err
+	}
+	s.CSP = csp
 	return nil
 }
 
@@ -403,6 +417,10 @@ func (s *Site) runBuild() (err error) {
 	if err := s.LoadAssets(); err != nil {
 		return err
 	}
+	// Load CSP.
+	if err := s.LoadCSP(); err != nil {
+		return err
+	}
 	// Load includes.
 	if err := s.LoadIncludes(); err != nil {
 		return err
@@ -595,6 +613,13 @@ func (s *Site) LayoutFuncs() layouts.FuncMap {
 		// `striptags` removes HTML tags from the given string.
 		"striptags": func(s string) (string, error) {
 			return utils.StripHTMLTags(s), nil
+		},
+		// `csp` returns Content-Security-Policy string.
+		"csp": func() (string, error) {
+			if len(s.CSP) == 0 {
+				return "", errors.New("CSP is empty, check csp.yml")
+			}
+			return s.CSP.String(), nil
 		},
 	}
 }
