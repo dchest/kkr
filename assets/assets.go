@@ -112,6 +112,9 @@ func concatFiles(filenames []string, separator []byte) (out []byte, err error) {
 }
 
 func (c *Collection) ProcessAsset(a *Asset, filters *filters.Collection, outdir string) error {
+	if a.processed {
+		return nil
+	}
 	separator := a.Separator
 	// Concatenate files.
 	b, err := concatFiles(a.Files, []byte(separator))
