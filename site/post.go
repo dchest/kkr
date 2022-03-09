@@ -126,3 +126,32 @@ func (pp Posts) Swap(i, j int)      { pp[i], pp[j] = pp[j], pp[i] }
 func (pp Posts) Sort() {
 	sort.Sort(pp)
 }
+
+type postsByYear struct {
+	Year  int
+	Posts Posts
+}
+
+func (pp Posts) ByYear() []postsByYear {
+	by := make(map[int]Posts, 0)
+	for _, p := range pp {
+		y := p.Date.Year()
+		posts, ok := by[y]
+		if !ok {
+			posts = make(Posts, 0)
+		}
+		posts = append(posts, p)
+		by[y] = posts
+	}
+	pby := make([]postsByYear, 0, len(by))
+	for k, v := range by {
+		pby = append(pby, postsByYear{
+			Year:  k,
+			Posts: v,
+		})
+	}
+	sort.Slice(pby, func(i, j int) bool {
+		return pby[i].Year >= pby[j].Year
+	})
+	return pby
+}

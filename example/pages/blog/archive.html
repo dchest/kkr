@@ -3,8 +3,11 @@ layout: blog
 title: Blog Archive
 ---
 
-<ul>
-{{range .Site.Posts }}
-  <li><a href="{{.URL}}">{{.Meta.title}}</a> &mdash; {{ .Date.Format "2006-01-02" }}</li>
+{{range .Site.Posts.ByYear}}
+  <h2>{{.Year}}</h2>
+  <ul>
+  {{range .Posts }}
+    <li><a href="{{.URL}}">{{.Meta.title}}</a> &mdash; {{ .Date.Format "2006-01-02" }}</li>
+  {{end}}
+  </ul>
 {{end}}
-</ul>
