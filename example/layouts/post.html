@@ -7,3 +7,12 @@ layout: blog
 {{ .Content }}
 
 <p class="post-meta">{{ .Page.date.Format "2 Jan 2006 15:04" }}</p>
+<hr>
+{{if .Page.tags}}
+<h3>Tags:</h3>
+<ul>
+  {{range .Page.tags}}
+  <li><a href="{{$.Site.TagURL .}}">{{.}}</a></li>
+  {{end}}
+</ul>
+{{end}}

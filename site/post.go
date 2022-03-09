@@ -91,6 +91,7 @@ func LoadPost(basedir, filename, outNameTemplate string) (p *Post, err error) {
 		default:
 			return nil, errors.New("'tags' is not an array of strings or a string")
 		}
+		page.meta["tags"] = tags
 	}
 
 	// Add index.html if ends with slash.
