@@ -16,6 +16,8 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"reflect"
+	"sort"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -316,6 +318,7 @@ func (s *Site) LoadPosts() (err error) {
 	for tagName := range tags {
 		tagList = append(tagList, tagName)
 	}
+	sort.Strings(tagList)
 	s.Config.TagList = tagList
 	s.Config.Tags = tags
 	return nil
@@ -671,6 +674,14 @@ func (s *Site) LayoutFuncs() layouts.FuncMap {
 				return "", errors.New("CSP is empty, check csp.yml")
 			}
 			return s.CSP.String(), nil
+		},
+		// `lastindex` returns the index of the last element of a slice.
+		"lastindex": func(item reflect.Value) (int, error) {
+			switch item.Kind() {
+			case reflect.Array, reflect.Chan, reflect.Map, reflect.Slice, reflect.String:
+				return item.Len() - 1, nil
+			}
+			return 0, fmt.Errorf("lastindex of type %s", item.Type())
 		},
 	}
 }
