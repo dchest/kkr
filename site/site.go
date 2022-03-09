@@ -96,7 +96,9 @@ func (c Config) TagURL(tag string) (string, error) {
 	if c.TagIndex == nil {
 		return "", errors.New("No tagindex in site.yml")
 	}
-	return strings.Replace(c.TagIndex.Permalink, ":tag", tag, -1), nil
+	out := strings.Replace(c.TagIndex.Permalink, ":tag", tag, -1)
+	out = strings.Replace(out, ":lctag", strings.ToLower(tag), -1)
+	return out, nil
 }
 
 func readConfig(filename string) (*Config, error) {
