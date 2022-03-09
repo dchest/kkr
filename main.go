@@ -33,7 +33,7 @@ var Usage = func() {
 Commands:
   build  - build website
   serve  - start a web server
-  dev    - same as "serve -watch -browser"
+  dev    - same as "serve -watch -browser", but disables compression
   clean  - clean caches and remove output directory
 
 Options:
