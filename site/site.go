@@ -117,6 +117,7 @@ type Site struct {
 	watcher             *fspoll.Watcher
 	cleanBeforeBuilding bool
 	fileWriter          *filewriter.FileWriter
+	devMode             bool
 }
 
 func Open(dir string) (s *Site, err error) {
@@ -142,12 +143,24 @@ func Open(dir string) (s *Site, err error) {
 	return s, nil
 }
 
+func (s *Site) SetDevMode(dev bool) {
+	s.devMode = dev
+	if !dev {
+		s.Config.Compress = nil
+		s.fileWriter, _ = filewriter.New(nil)
+	}
+}
+
 func (s *Site) LoadConfig() error {
 	conf, err := readConfig(filepath.Join(s.BaseDir, ConfigFileName))
 	if err != nil {
 		return err
 	}
-	s.fileWriter, err = filewriter.New(conf.Compress)
+	compress := conf.Compress
+	if s.devMode {
+		compress = nil
+	}
+	s.fileWriter, err = filewriter.New(compress)
 	if err != nil {
 		return err
 	}

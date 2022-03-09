@@ -100,6 +100,9 @@ func main() {
 			select {}
 		}
 	case "serve", "dev":
+		if command == "dev" {
+			currentSite.SetDevMode(true)
+		}
 		serverDone := make(chan bool)
 		go func() {
 			err := currentSite.Serve(*fHttp)
