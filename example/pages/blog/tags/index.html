@@ -3,6 +3,13 @@ layout: blog
 title: Posts by Tag
 ---
 
+<h1>Tags</h1>
+<ul>
+  {{range $index, $tag := .Site.TagList}}
+  <li><a href="{{$.Site.TagURL $tag}}">{{$tag}}</a></li>
+  {{end}}
+</ul>
+
 <h1>Posts by Tags</h1>
 {{range $index, $tag := .Site.TagList}}
 <h2>{{$tag}}</h2>

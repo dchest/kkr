@@ -1,7 +1,11 @@
 name: Example Website
 author: Kukuruz Authors
-permalink: /blog/:year/:month/:day/:name/
 url: http://www.example.com
+permalink: /blog/:year/:month/:day/:name/
+
+tagindex:
+  permalink: /blog/tags/:tag/
+  layout: tag
 
 filters:
   .html: [htmlmin, styles, scripts]

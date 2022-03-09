@@ -16,6 +16,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 	"unicode/utf8"
 
@@ -46,8 +47,9 @@ const (
 
 	DefaultPermalink = "blog/:year/:month/:day/:name/"
 
-	DefaultPostLayout = "post"
-	DefaultPageLayout = "default"
+	DefaultPostLayout     = "post"
+	DefaultPageLayout     = "default"
+	DefaultTagIndexLayout = "tag"
 )
 
 var (
@@ -61,6 +63,11 @@ type SearchConfig struct {
 	Exclude []string `yaml:"exclude"`
 }
 
+type TagIndexConfig struct {
+	Permalink string `yaml:"permalink"`
+	Layout    string `yaml:"layout"`
+}
+
 type Config struct {
 	// Loadable from YAML.
 	Name       string                     `yaml:"name"`
@@ -72,6 +79,7 @@ type Config struct {
 	Search     *SearchConfig              `yaml:"search"`
 	Markup     *markup.Options            `yaml:"markup"`
 	Compress   *filewriter.CompressConfig `yaml:"compress"`
+	TagIndex   *TagIndexConfig            `yaml:"tagindex"`
 
 	// Generated.
 	Date    time.Time
@@ -80,8 +88,15 @@ type Config struct {
 	TagList []string         `yaml:"-"`
 }
 
-func (c Config) PostsByTag(tagName string) Posts {
-	return c.Tags[tagName]
+func (c Config) PostsByTag(tag string) Posts {
+	return c.Tags[tag]
+}
+
+func (c Config) TagURL(tag string) (string, error) {
+	if c.TagIndex == nil {
+		return "", errors.New("No tagindex in site.yml")
+	}
+	return strings.Replace(c.TagIndex.Permalink, ":tag", tag, -1), nil
 }
 
 func readConfig(filename string) (*Config, error) {
@@ -330,6 +345,38 @@ func (s *Site) RenderPosts() error {
 	return nil
 }
 
+func (s *Site) RenderTagsIndex() error {
+	log.Printf("* Rendering tags index")
+	for _, tag := range s.Config.TagList {
+		if err := s.RenderTag(tag); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (s *Site) RenderTag(tag string) error {
+	// Render tag index.
+	url, err := s.Config.TagURL(tag)
+	if err != nil {
+		return fmt.Errorf("Cannot generate tag index %q: %w", tag, err)
+	}
+	p := NewTagIndex(tag, url)
+	data, err := s.Layouts.RenderPage(p, DefaultTagIndexLayout)
+	if err != nil {
+		return err
+	}
+	log.Printf("T > %s\n", filepath.Join(OutDirName, p.Filename))
+	// Apply filter.
+	data, err = s.PageFilters.ApplyFilter(filepath.Ext(p.Filename), data)
+	if err != nil {
+		return err
+	}
+	// Write to file.
+	return s.fileWriter.WriteFile(filepath.Join(s.BaseDir, OutDirName, p.Filename), []byte(data))
+
+}
+
 func (s *Site) RenderPage(pagesDir, relname string) error {
 	log.Printf("P < %s\n", relname)
 	p, err := LoadPage(pagesDir, relname)
@@ -444,6 +491,13 @@ func (s *Site) runBuild() (err error) {
 	err = s.RenderPages()
 	if err != nil {
 		return
+	}
+	// Render tags index.
+	if s.Config.TagIndex != nil {
+		err = s.RenderTagsIndex()
+		if err != nil {
+			return
+		}
 	}
 	return nil
 }

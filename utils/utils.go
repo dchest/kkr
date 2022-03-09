@@ -47,6 +47,15 @@ func CleanPermalink(s string) string {
 	return s
 }
 
+// AddIndexIfNeeded adds "index.html" to the filename if
+// it ends with a slash. Otherwise returns the original filename.
+func AddIndexIfNeeded(filename string) string {
+	if len(filename) == 0 || filename[len(filename)-1] != '/' {
+		return filename
+	}
+	return filename + "index.html"
+}
+
 // StripEndSlash returns a string with ending slash removed,
 // or if there was no slash, returns the original string.
 func StripEndSlash(s string) string {

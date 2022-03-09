@@ -1,0 +1,10 @@
+---
+layout: blog
+---
+
+<h1>{{.Content}}</h1>
+<ul>
+  {{range $.Site.PostsByTag .Content}}
+  <li><a href="{{.Meta.url}}">{{.Meta.title}}</a></li>
+  {{end}}
+</ul>

@@ -94,9 +94,7 @@ func LoadPost(basedir, filename, outNameTemplate string) (p *Post, err error) {
 	}
 
 	// Add index.html if ends with slash.
-	if outname[len(outname)-1] == '/' {
-		outname += "index.html"
-	}
+	outname = utils.AddIndexIfNeeded(outname)
 	page.Filename = filepath.FromSlash(outname)
 	page.url = url
 	return &Post{
