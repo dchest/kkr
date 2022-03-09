@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"path"
 	"path/filepath"
+	"reflect"
 	"sort"
 	"strings"
 	"time"
@@ -83,13 +84,24 @@ func LoadPost(basedir, filename, outNameTemplate string) (p *Post, err error) {
 			for i, v := range tags {
 				tags[i] = strings.TrimSpace(v)
 			}
+		case []string:
+			tags = make([]string, 0, len(t))
+			for _, v := range t {
+				tags = append(tags, v)
+			}
 		case []interface{}:
 			tags = make([]string, 0, len(t))
 			for _, v := range t {
-				tags = append(tags, v.(string))
+				s, ok := v.(string)
+				if !ok {
+					return nil, fmt.Errorf("'tags' contains a non-string: %v", reflect.TypeOf(v))
+				}
+				tags = append(tags, s)
 			}
+		case nil:
+			// nothing
 		default:
-			return nil, errors.New("'tags' is not an array of strings or a string")
+			return nil, fmt.Errorf("'tags' is not an array of strings or a string: %v", reflect.TypeOf(mt))
 		}
 		page.meta["tags"] = tags
 	}
