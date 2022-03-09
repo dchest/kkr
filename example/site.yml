@@ -14,3 +14,15 @@ search:
   index: /search/search-index.json
   exclude:
     - 404.html
+
+compress:
+  methods:
+    - gzip
+    - br
+  extensions:
+    - txt
+    - html
+    - js
+    - css
+    - xml
+    - json

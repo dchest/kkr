@@ -1,3 +1,5 @@
+github.com/andybalholm/brotli v1.0.4 h1:V7DdXeJtZscaqfNuAdSRuRFzuiKlHSC/Zh3zl9qY3JY=
+github.com/andybalholm/brotli v1.0.4/go.mod h1:fO7iG3H7G2nSZ7m0zPUDn85XEX2GTukHGRSepvi9Eig=
 github.com/dchest/cssmin v0.0.0-20151210170030-fb8d9b44afdc h1:VBS1z48BFEe00G81z8MKOtwX7f/ISkuH38NscT8iVPw=
 github.com/dchest/cssmin v0.0.0-20151210170030-fb8d9b44afdc/go.mod h1:ABJPuor7YlcsHmvJ1QxX38e2NcufLY3hm0yXv+cy9sI=
 github.com/dchest/htmlmin v1.0.0 h1:joUQTro23wV2dV8oe/LDOM5m/iuwMx8Tt9WnhPzvqxM=

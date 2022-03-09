@@ -12,6 +12,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/dchest/kkr/filewriter"
 	"github.com/dchest/kkr/filters"
 	"github.com/dchest/kkr/utils"
 )
@@ -70,9 +71,9 @@ func Load(filename string) (c *Collection, err error) {
 }
 
 // Process processes all assets in the collection.
-func (c *Collection) Process(outdir string) error {
+func (c *Collection) Process(fw *filewriter.FileWriter, outdir string) error {
 	for _, a := range c.assets {
-		if err := c.ProcessAsset(a, c.filters, outdir); err != nil {
+		if err := c.ProcessAsset(fw, a, c.filters, outdir); err != nil {
 			return err
 		}
 	}
@@ -111,7 +112,7 @@ func concatFiles(filenames []string, separator []byte) (out []byte, err error) {
 	return out, nil
 }
 
-func (c *Collection) ProcessAsset(a *Asset, filters *filters.Collection, outdir string) error {
+func (c *Collection) ProcessAsset(fw *filewriter.FileWriter, a *Asset, filters *filters.Collection, outdir string) error {
 	if a.processed {
 		return nil
 	}
@@ -131,7 +132,7 @@ func (c *Collection) ProcessAsset(a *Asset, filters *filters.Collection, outdir 
 			if !refAsset.processed {
 				// Process it.
 				// BUG Here hang if we can have a circular reference.
-				if err := c.ProcessAsset(refAsset, filters, outdir); err != nil {
+				if err := c.ProcessAsset(fw, refAsset, filters, outdir); err != nil {
 					return err
 				}
 			}
@@ -165,7 +166,7 @@ func (c *Collection) ProcessAsset(a *Asset, filters *filters.Collection, outdir 
 	log.Printf("A %s", a.Result)
 	// Write to file.
 	outfile := filepath.Join(outdir, filepath.FromSlash(a.Result))
-	if err := utils.WriteStringToFile(outfile, s); err != nil {
+	if err := fw.WriteFile(outfile, []byte(s)); err != nil {
 		return err
 	}
 	a.processed = true

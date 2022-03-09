@@ -3,6 +3,7 @@ module github.com/dchest/kkr
 go 1.16
 
 require (
+	github.com/andybalholm/brotli v1.0.4
 	github.com/dchest/cssmin v0.0.0-20151210170030-fb8d9b44afdc
 	github.com/dchest/htmlmin v1.0.0
 	github.com/dchest/jsmin v0.0.0-20160823214000-faeced883947

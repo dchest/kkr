@@ -71,15 +71,6 @@ func TemplatedHash(template string, input string) string {
 	return strings.Replace(template, ":hash", hs, -1)
 }
 
-// WriteStringToFile writes string to a file, making parent directories
-// if they don't exist.
-func WriteStringToFile(filename, data string) error {
-	if err := os.MkdirAll(filepath.Dir(filename), 0755); err != nil {
-		return err
-	}
-	return ioutil.WriteFile(filename, []byte(data), 0644)
-}
-
 var dateTemplates = []string{
 	"2006-01-02 15:04",
 	"2006-01-02 15:04 -07:00",

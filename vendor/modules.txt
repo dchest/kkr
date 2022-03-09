@@ -1,3 +1,6 @@
+# github.com/andybalholm/brotli v1.0.4
+## explicit
+github.com/andybalholm/brotli
 # github.com/dchest/cssmin v0.0.0-20151210170030-fb8d9b44afdc
 ## explicit
 github.com/dchest/cssmin

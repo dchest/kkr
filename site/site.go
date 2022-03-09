@@ -11,7 +11,6 @@ import (
 	"encoding/xml"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -21,6 +20,7 @@ import (
 	"unicode/utf8"
 
 	"github.com/dchest/kkr/csp"
+	"github.com/dchest/kkr/filewriter"
 	"github.com/dchest/kkr/search"
 	"github.com/dchest/kkr/search/indexer"
 
@@ -63,14 +63,15 @@ type SearchConfig struct {
 
 type Config struct {
 	// Loadable from YAML.
-	Name       string                 `yaml:"name"`
-	Author     string                 `yaml:"author"`
-	Permalink  string                 `yaml:"permalink"`
-	URL        string                 `yaml:"url"`
-	Filters    map[string]interface{} `yaml:"filters"`
-	Properties map[string]interface{} `yaml:"properties"`
-	Search     *SearchConfig          `yaml:"search"`
-	Markup     *markup.Options        `yaml:"markup"`
+	Name       string                     `yaml:"name"`
+	Author     string                     `yaml:"author"`
+	Permalink  string                     `yaml:"permalink"`
+	URL        string                     `yaml:"url"`
+	Filters    map[string]interface{}     `yaml:"filters"`
+	Properties map[string]interface{}     `yaml:"properties"`
+	Search     *SearchConfig              `yaml:"search"`
+	Markup     *markup.Options            `yaml:"markup"`
+	Compress   *filewriter.CompressConfig `yaml:"compress"`
 
 	// Generated.
 	Date    time.Time
@@ -97,6 +98,7 @@ func readConfig(filename string) (*Config, error) {
 	}
 	// Some cleanup.
 	c.URL = utils.StripEndSlash(c.URL)
+	// Precalculate compressors.
 	return &c, nil
 }
 
@@ -114,6 +116,7 @@ type Site struct {
 
 	watcher             *fspoll.Watcher
 	cleanBeforeBuilding bool
+	fileWriter          *filewriter.FileWriter
 }
 
 func Open(dir string) (s *Site, err error) {
@@ -141,6 +144,10 @@ func Open(dir string) (s *Site, err error) {
 
 func (s *Site) LoadConfig() error {
 	conf, err := readConfig(filepath.Join(s.BaseDir, ConfigFileName))
+	if err != nil {
+		return err
+	}
+	s.fileWriter, err = filewriter.New(conf.Compress)
 	if err != nil {
 		return err
 	}
@@ -297,7 +304,7 @@ func (s *Site) RenderPost(p *Post) error {
 		return err
 	}
 	// Write to file.
-	return utils.WriteStringToFile(filepath.Join(s.BaseDir, OutDirName, p.Filename), data)
+	return s.fileWriter.WriteFile(filepath.Join(s.BaseDir, OutDirName, p.Filename), []byte(data))
 }
 
 func (s *Site) RenderPosts() error {
@@ -332,7 +339,7 @@ func (s *Site) RenderPage(pagesDir, relname string) error {
 		return err
 	}
 	// Write to file.
-	return utils.WriteStringToFile(filepath.Join(s.BaseDir, OutDirName, p.Filename), data)
+	return s.fileWriter.WriteFile(filepath.Join(s.BaseDir, OutDirName, p.Filename), []byte(data))
 }
 
 func (s *Site) RenderPages() error {
@@ -359,35 +366,10 @@ func (s *Site) RenderPages() error {
 func (s *Site) CopyFile(filename string) error {
 	inDir := filepath.Join(s.BaseDir, PagesDirName)
 	outDir := filepath.Join(s.BaseDir, OutDirName)
-	if err := os.MkdirAll(filepath.Join(outDir, filepath.Dir(filename)), 0755); err != nil {
-		return err
-	}
 	inFile := filepath.Join(inDir, filename)
 	outFile := filepath.Join(outDir, filename)
 
-	// Remove old outfile, ignoring errors.
-	os.Remove(outFile)
-
-	// Try making hard link instead of copying.
-	if err := os.Link(inFile, outFile); err == nil {
-		// Succeeded.
-		log.Printf("H > %s\n", filepath.Join(OutDirName, filename))
-		return nil
-	}
-
-	// Failed to create hard link, so try copying content.
-	in, err := os.Open(inFile)
-	if err != nil {
-		return err
-	}
-	defer in.Close()
-	out, err := os.Create(outFile)
-	if err != nil {
-		return err
-	}
-	defer out.Close()
-	_, err = io.Copy(out, in)
-	if err != nil {
+	if err := s.fileWriter.CopyFile(outFile, inFile); err != nil {
 		return err
 	}
 	log.Printf("C > %s\n", filepath.Join(OutDirName, filename))
@@ -427,7 +409,7 @@ func (s *Site) runBuild() (err error) {
 	}
 	// Process assets.
 	log.Printf("* Processing assets.")
-	err = s.Assets.Process(filepath.Join(s.BaseDir, OutDirName))
+	err = s.Assets.Process(s.fileWriter, filepath.Join(s.BaseDir, OutDirName))
 	if err != nil {
 		return
 	}
@@ -534,7 +516,7 @@ func (s *Site) generateSearchIndex() error {
 	if err := os.MkdirAll(filepath.Dir(filename), 0755); err != nil {
 		return err
 	}
-	if err := os.WriteFile(filename, out, 0644); err != nil {
+	if err := s.fileWriter.WriteFile(filename, out); err != nil {
 		return err
 	}
 	log.Printf("* Indexed %d documents.", n)
