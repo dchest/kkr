@@ -310,8 +310,22 @@ func (s *Site) LoadPosts() (err error) {
 	// Distribute by tags.
 	tags := make(map[string]Posts)
 	for _, p := range posts {
-		for _, tagName := range p.Tags {
-			tags[tagName] = append(tags[tagName], p)
+		for _, tag := range p.Tags {
+			// If we have a lowercased tag, but don't have
+			// the original-cased tag, normalize it to lowercase;
+			// do the same with title-cased tag.
+			lowerTag := strings.ToLower(tag)
+			titleTag := strings.Title(tag) // deprecated, but we don't care about punctuation
+			if _, hasTag := tags[tag]; !hasTag {
+				if _, hasLower := tags[lowerTag]; hasLower {
+					tag = lowerTag
+				} else {
+					if _, hasTitle := tags[titleTag]; hasTitle {
+						tag = titleTag
+					}
+				}
+			}
+			tags[tag] = append(tags[tag], p)
 		}
 	}
 	tagList := make([]string, 0, len(tags))
