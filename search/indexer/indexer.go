@@ -60,7 +60,7 @@ func (n *Index) WriteJSON(w io.Writer) error {
 	// Make JSON smaller:
 	// Sort docs by most frequent, so that smaller
 	// doc ids are taken for most frequent ones.
-	sort.Slice(n.Docs, func(i, j int) bool {
+	sort.SliceStable(n.Docs, func(i, j int) bool {
 		return n.Docs[i].numWords > n.Docs[j].numWords
 	})
 
