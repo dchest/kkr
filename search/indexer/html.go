@@ -56,7 +56,7 @@ func (p *htmlParser) skipNoIndexElement(n *html.Node) bool {
 
 func (p *htmlParser) parseImg(n *html.Node) {
 	for _, a := range n.Attr {
-		if a.Key == "alt" {
+		if a.Key == "alt" || a.Key == "title" {
 			p.consumeString(a.Val)
 			return
 		}
