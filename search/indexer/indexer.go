@@ -42,6 +42,8 @@ func New() *Index {
 	}
 }
 
+type docIndexAndWeight [2]int
+
 func (n *Index) WriteJSON(w io.Writer) error {
 	// Calculate minWeight (for normalization later),
 	// and add word frequencies to doc.
@@ -75,9 +77,24 @@ func (n *Index) WriteJSON(w io.Writer) error {
 			if normWeight == 1 {
 				n.Words[word] = append(n.Words[word], doc.selfIndex)
 			} else {
-				n.Words[word] = append(n.Words[word], [2]interface{}{doc.selfIndex, normWeight})
+				n.Words[word] = append(n.Words[word], docIndexAndWeight{doc.selfIndex, normWeight})
 			}
 		}
+		// Sort doc indexes for better compression.
+		w := n.Words[word]
+		getDocIndex := func(i int) int {
+			switch v := w[i].(type) {
+			case docIndexAndWeight:
+				return v[0]
+			case int:
+				return v
+			default:
+				panic("wrong type in index")
+			}
+		}
+		sort.SliceStable(w, func(i, j int) bool {
+			return getDocIndex(i) < getDocIndex(j)
+		})
 	}
 	return json.NewEncoder(w).Encode(n)
 }
