@@ -99,7 +99,7 @@ func isBufferName(s string) bool {
 	return len(s) > 0 && s[0] == bufSigil
 }
 
-func writeFile(w io.Writer, filename string) error {
+func readFile(w io.Writer, filename string) error {
 	f, err := os.Open(filename)
 	if err != nil {
 		return err
@@ -133,7 +133,7 @@ func (c *Collection) ProcessAsset(fw *filewriter.FileWriter, a *Asset, filters *
 			}
 			buf.WriteString(refAsset.Result)
 		} else {
-			if err := writeFile(&buf, name); err != nil {
+			if err := readFile(&buf, name); err != nil {
 				return err
 			}
 		}
