@@ -354,24 +354,26 @@ func (s *Site) RenderPost(p *Post) error {
 	return s.fileWriter.WriteFile(filepath.Join(s.BaseDir, OutDirName, p.Filename), []byte(data))
 }
 
-func (s *Site) RenderPosts() error {
+func (s *Site) RenderPosts() (err error) {
 	log.Printf("* Rendering posts.")
+	pool := utils.NewPool(func(p interface{}) error {
+		return s.RenderPost(p.(*Post))
+	})
 	for _, p := range s.Config.Posts {
-		if err := s.RenderPost(p); err != nil {
-			return err
-		}
+		pool.Add(p)
 	}
-	return nil
+	return pool.Err()
 }
 
 func (s *Site) RenderTagsIndex() error {
 	log.Printf("* Rendering tags index")
-	for _, tag := range s.Config.TagList {
-		if err := s.RenderTag(tag); err != nil {
-			return err
-		}
+	pool := utils.NewPool(func(tag interface{}) error {
+		return s.RenderTag(tag.(string))
+	})
+	for _, p := range s.Config.TagList {
+		pool.Add(p)
 	}
-	return nil
+	return pool.Err()
 }
 
 func (s *Site) RenderTag(tag string) error {
@@ -424,7 +426,10 @@ func (s *Site) RenderPage(pagesDir, relname string) error {
 func (s *Site) RenderPages() error {
 	log.Printf("* Rendering pages")
 	inDir := filepath.Join(s.BaseDir, PagesDirName)
-	return filepath.Walk(inDir, func(path string, fi os.FileInfo, err error) error {
+	pool := utils.NewPool(func(relname interface{}) error {
+		return s.RenderPage(inDir, relname.(string))
+	})
+	err := filepath.Walk(inDir, func(path string, fi os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -438,8 +443,14 @@ func (s *Site) RenderPages() error {
 		if s.isIgnoredFile(filepath.Base(relname)) {
 			return nil // skip ignored files
 		}
-		return s.RenderPage(inDir, relname)
+		pool.Add(relname)
+		return nil
 	})
+	perr := pool.Err()
+	if err != nil {
+		return err
+	}
+	return perr
 }
 
 func (s *Site) CopyFile(filename string) error {

@@ -19,6 +19,7 @@ import (
 	"regexp"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 
 	"gopkg.in/yaml.v1"
@@ -250,4 +251,53 @@ func OpenURL(addr string) error {
 	default:
 		return fmt.Errorf("Don't know how to open browser on %s", runtime.GOOS)
 	}
+}
+
+// Pool is a worker pool for parallel job processing.
+type Pool struct {
+	sync.Mutex
+	wg   sync.WaitGroup
+	jobs chan interface{}
+	err  error
+}
+
+// NewPool creates a new pool which calls fn for each
+// added item and stores the first returned error.
+func NewPool(fn func(interface{}) error) *Pool {
+	parallelism := runtime.NumCPU()
+	p := &Pool{
+		jobs: make(chan interface{}, parallelism),
+	}
+	// Lauch workers.
+	for i := 0; i < parallelism; i++ {
+		go func() {
+			for j := range p.jobs {
+				err := fn(j)
+				if err != nil {
+					p.Lock()
+					if p.err == nil {
+						p.err = err
+					}
+					p.Unlock()
+				}
+				p.wg.Done()
+			}
+		}()
+	}
+	return p
+}
+
+// Add adds a new job to pool. Function passed to
+// NewPool will be called for each job in a worker goroutine.
+//
+// After finishing adding items, Err must be called on the pool
+// to wait for unfinished jobs to complete and get the first error.
+func (p *Pool) Add(job interface{}) {
+	p.wg.Add(1)
+	p.jobs <- job
+}
+
+func (p *Pool) Err() error {
+	p.wg.Wait()
+	return p.err
 }
