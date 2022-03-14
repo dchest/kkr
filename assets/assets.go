@@ -161,7 +161,7 @@ func (c *Collection) ProcessAsset(fw *filewriter.FileWriter, a *Asset, filters *
 	// Check that the result is not empty.
 	if a.Result == "" {
 		// Use hash for name.
-		a.Result = string(utils.Hash(s))
+		a.Result = utils.TemplatedHash(":hash", s)
 	}
 	log.Printf("A %s", a.Result)
 	// Write to file.
