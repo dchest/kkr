@@ -6,8 +6,9 @@
 package assets
 
 import (
+	"bytes"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"log"
 	"os"
 	"path/filepath"
@@ -94,22 +95,8 @@ func (c *Collection) Get(name string) *Asset {
 	return c.assets[name]
 }
 
-func concatFiles(filenames []string, separator []byte) (out []byte, err error) {
-	for i, f := range filenames {
-		if len(f) > 0 && f[0] == bufSigil {
-			// Not a file, skip for now.
-			continue
-		}
-		b, err := ioutil.ReadFile(f)
-		if err != nil {
-			return nil, err
-		}
-		out = append(out, b...)
-		if i != len(filenames)-1 {
-			out = append(out, separator...)
-		}
-	}
-	return out, nil
+func isBufferName(s string) bool {
+	return len(s) > 0 && s[0] == bufSigil
 }
 
 func (c *Collection) ProcessAsset(fw *filewriter.FileWriter, a *Asset, filters *filters.Collection, outdir string) error {
@@ -117,47 +104,52 @@ func (c *Collection) ProcessAsset(fw *filewriter.FileWriter, a *Asset, filters *
 		return nil
 	}
 	separator := a.Separator
-	// Concatenate files.
-	b, err := concatFiles(a.Files, []byte(separator))
-	if err != nil {
-		return err
-	}
-	// Append buffers if any.
-	for i, f := range a.Files {
-		if len(f) > 0 && f[0] == bufSigil {
-			refAsset := c.Get(f[1:]) // e.g. $global-style -> global-style
+	// Concatenate files and buffers.
+	var buf bytes.Buffer
+	for i, name := range a.Files {
+		if isBufferName(name) {
+			refAsset := c.Get(name[1:]) // e.g. $global-style -> global-style
 			if refAsset == nil {
-				return fmt.Errorf("asset %q not found", f[1:])
+				return fmt.Errorf("asset %q not found", name[1:])
 			}
 			if !refAsset.processed {
 				// Process it.
-				// BUG Here hang if we can have a circular reference.
+				// BUG Here will hang if we can have a circular reference.
 				if err := c.ProcessAsset(fw, refAsset, filters, outdir); err != nil {
 					return err
 				}
 			}
-			b = append(b, []byte(refAsset.Result)...)
-			if i != len(a.Files)-1 {
-				b = append(b, separator...)
+			buf.WriteString(refAsset.Result)
+		} else {
+			f, err := os.Open(name)
+			if err != nil {
+				return err
 			}
+			defer f.Close()
+			if _, err := io.Copy(&buf, f); err != nil {
+				return err
+			}
+		}
+		if i != len(a.Files)-1 {
+			buf.WriteString(separator)
 		}
 	}
 	// Filter result.
-	s, err := filters.ApplyFilter(a.Name, string(b))
+	b, err := filters.ApplyFilter(a.Name, buf.Bytes())
 	if err != nil {
 		return err
 	}
 	if a.OutName == string(bufSigil) {
-		// Result is output.
-		// Don't write to file, just remember result.
-		a.Result = s
+		// Result is the output.
+		// Don't write to file, just remember the result.
+		a.Result = string(b)
 		a.processed = true
 		log.Printf("A %c%s", bufSigil, a.Name)
 		return nil
 	}
 	// Result is filename.
 	// Make file name from hash.
-	a.Result = utils.TemplatedHash(a.OutName, s)
+	a.Result = utils.TemplatedHash(a.OutName, b)
 	// Check that the result is not empty.
 	if a.Result == "" {
 		return fmt.Errorf("templated hash for asset %s returned empty result", a.Name)
@@ -165,7 +157,7 @@ func (c *Collection) ProcessAsset(fw *filewriter.FileWriter, a *Asset, filters *
 	log.Printf("A %s", a.Result)
 	// Write to file.
 	outfile := filepath.Join(outdir, filepath.FromSlash(a.Result))
-	if err := fw.WriteFile(outfile, []byte(s)); err != nil {
+	if err := fw.WriteFile(outfile, b); err != nil {
 		return err
 	}
 	a.processed = true

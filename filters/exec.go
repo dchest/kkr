@@ -11,7 +11,6 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
-	"strings"
 )
 
 func init() {
@@ -27,9 +26,9 @@ type Exec struct {
 
 func (f *Exec) Name() string { return fmt.Sprintf("exec %s %q", f.command, f.args) }
 
-func (f *Exec) Apply(s string) (out string, err error) {
+func (f *Exec) Apply(in []byte) (out []byte, err error) {
 	cmd := exec.Command(f.command, f.args...)
-	cmd.Stdin = strings.NewReader(s)
+	cmd.Stdin = bytes.NewReader(in)
 	var buf bytes.Buffer
 	var errbuf bytes.Buffer
 	cmd.Stdout = &buf
@@ -37,7 +36,7 @@ func (f *Exec) Apply(s string) (out string, err error) {
 	err = cmd.Run()
 	if err != nil {
 		errbuf.WriteTo(os.Stderr)
-		return "", fmt.Errorf("`%s` error: %s", f.Name(), err)
+		return nil, fmt.Errorf("`%s` error: %s", f.Name(), err)
 	}
-	return buf.String(), nil
+	return buf.Bytes(), nil
 }

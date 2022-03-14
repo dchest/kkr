@@ -346,12 +346,12 @@ func (s *Site) RenderPost(p *Post) error {
 	}
 	log.Printf("B > %s\n", filepath.Join(OutDirName, p.Filename))
 	// Apply filter.
-	data, err = s.PageFilters.ApplyFilter(filepath.Ext(p.Filename), data)
+	b, err := s.PageFilters.ApplyFilter(filepath.Ext(p.Filename), []byte(data))
 	if err != nil {
 		return err
 	}
 	// Write to file.
-	return s.fileWriter.WriteFile(filepath.Join(s.BaseDir, OutDirName, p.Filename), []byte(data))
+	return s.fileWriter.WriteFile(filepath.Join(s.BaseDir, OutDirName, p.Filename), b)
 }
 
 func (s *Site) RenderPosts() error {
@@ -389,12 +389,12 @@ func (s *Site) RenderTag(tag string) error {
 	}
 	log.Printf("T > %s\n", filepath.Join(OutDirName, p.Filename))
 	// Apply filter.
-	data, err = s.PageFilters.ApplyFilter(filepath.Ext(p.Filename), data)
+	b, err := s.PageFilters.ApplyFilter(filepath.Ext(p.Filename), []byte(data))
 	if err != nil {
 		return err
 	}
 	// Write to file.
-	return s.fileWriter.WriteFile(filepath.Join(s.BaseDir, OutDirName, p.Filename), []byte(data))
+	return s.fileWriter.WriteFile(filepath.Join(s.BaseDir, OutDirName, p.Filename), b)
 
 }
 
@@ -415,12 +415,12 @@ func (s *Site) RenderPage(pagesDir, relname string) error {
 	}
 	log.Printf("P > %s\n", filepath.Join(OutDirName, p.Filename))
 	// Apply filter.
-	data, err = s.PageFilters.ApplyFilter(filepath.Ext(p.Filename), data)
+	b, err := s.PageFilters.ApplyFilter(filepath.Ext(p.Filename), []byte(data))
 	if err != nil {
 		return err
 	}
 	// Write to file.
-	return s.fileWriter.WriteFile(filepath.Join(s.BaseDir, OutDirName, p.Filename), []byte(data))
+	return s.fileWriter.WriteFile(filepath.Join(s.BaseDir, OutDirName, p.Filename), b)
 }
 
 func (s *Site) RenderPages() error {

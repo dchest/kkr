@@ -68,14 +68,14 @@ func StripEndSlash(s string) string {
 }
 
 // Hash returns an SHA256 hash of the given string.
-func Hash(s string) []byte {
-	h := sha256.Sum256([]byte(s))
+func Hash(data []byte) []byte {
+	h := sha256.Sum256(data)
 	return h[:]
 }
 
 // TemplatedHash replaces ":hash" in template with hexadecimal characters of
 // the hash of the input string and returns the result.
-func TemplatedHash(template string, input string) string {
+func TemplatedHash(template string, input []byte) string {
 	// 10 bytes of hash is enough to avoid accidental collisions.
 	hs := NoVowelsHexEncode(Hash(input)[:10])
 	return strings.Replace(template, ":hash", hs, -1)

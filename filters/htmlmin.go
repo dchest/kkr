@@ -46,14 +46,10 @@ func (f *HTMLMin) Name() string {
 	return fmt.Sprintf("htmlmin (scripts=%v styles=%v)", f.scripts, f.styles)
 }
 
-func (f *HTMLMin) Apply(s string) (out string, err error) {
-	result, err := htmlmin.Minify([]byte(s), &htmlmin.Options{
+func (f *HTMLMin) Apply(in []byte) (out []byte, err error) {
+	return htmlmin.Minify(in, &htmlmin.Options{
 		MinifyScripts: f.scripts,
 		MinifyStyles:  f.styles,
 		UnquoteAttrs:  f.unquote,
 	})
-	if err != nil {
-		return "", err
-	}
-	return string(result), nil
 }

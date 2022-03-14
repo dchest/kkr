@@ -20,7 +20,6 @@ type CSSMin int
 
 func (f CSSMin) Name() string { return "cssmin" }
 
-func (f CSSMin) Apply(s string) (out string, err error) {
-	result := cssmin.Minify([]byte(s))
-	return string(result), nil
+func (f CSSMin) Apply(in []byte) (out []byte, err error) {
+	return cssmin.Minify(in), nil
 }

@@ -20,10 +20,6 @@ type JSMin int
 
 func (f JSMin) Name() string { return "jsmin" }
 
-func (f JSMin) Apply(s string) (out string, err error) {
-	result, err := jsmin.Minify([]byte(s))
-	if err != nil {
-		return "", err
-	}
-	return string(result), nil
+func (f JSMin) Apply(in []byte) (out []byte, err error) {
+	return jsmin.Minify(in)
 }

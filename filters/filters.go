@@ -12,7 +12,7 @@ import (
 // Filter is an interface declaring a filter.
 type Filter interface {
 	Name() string
-	Apply(string) (string, error)
+	Apply([]byte) ([]byte, error)
 }
 
 // Maker is a type of function which accepts arguments
@@ -94,8 +94,7 @@ func (c *Collection) Get(key string) Filter {
 
 // ApplyFilter applies a filter found by key to the given string.
 // If the filter wasn't found, returns the original string.
-// TODO: do we need this method at all?
-func (c *Collection) ApplyFilter(key string, in string) (out string, err error) {
+func (c *Collection) ApplyFilter(key string, in []byte) (out []byte, err error) {
 	f := c.filters[key]
 	if f == nil {
 		return in, nil
