@@ -354,7 +354,7 @@ func (s *Site) RenderPost(p *Post) error {
 	return s.fileWriter.WriteFile(filepath.Join(s.BaseDir, OutDirName, p.Filename), []byte(data))
 }
 
-func (s *Site) RenderPosts() (err error) {
+func (s *Site) RenderPosts() error {
 	log.Printf("* Rendering posts.")
 	pool := utils.NewPool(func(p interface{}) error {
 		return s.RenderPost(p.(*Post))
@@ -466,67 +466,56 @@ func (s *Site) CopyFile(filename string) error {
 	return nil
 }
 
-func (s *Site) runBuild() (err error) {
+func (s *Site) ProcessAssets() error {
+	log.Printf("* Processing assets.")
+	return s.Assets.Process(s.fileWriter, filepath.Join(s.BaseDir, OutDirName))
+}
+
+func (s *Site) runBuild() error {
 	if s.cleanBeforeBuilding {
-		err = s.Clean()
-		if err != nil {
-			return
+		if err := s.Clean(); err != nil {
+			return err
 		}
 	}
 	// Reload config.
 	if err := s.LoadConfig(); err != nil {
 		return err
 	}
-	// Set site build time.
 	s.Config.Date = time.Now()
-	// Set markup options
+
 	markup.SetOptions(s.Config.Markup)
-	// Load page filters.
+
 	if err := s.LoadPageFilters(); err != nil {
 		return err
 	}
-	// Load assets.
 	if err := s.LoadAssets(); err != nil {
 		return err
 	}
-	// Load CSP.
 	if err := s.LoadCSP(); err != nil {
 		return err
 	}
-	// Load includes.
 	if err := s.LoadIncludes(); err != nil {
 		return err
 	}
-	// Process assets.
-	log.Printf("* Processing assets.")
-	err = s.Assets.Process(s.fileWriter, filepath.Join(s.BaseDir, OutDirName))
-	if err != nil {
-		return
+	if err := s.LoadLayouts(); err != nil {
+		return err
 	}
-	// Load layouts.
-	err = s.LoadLayouts()
-	if err != nil {
-		return
+	if err := s.LoadPosts(); err != nil {
+		return err
 	}
-	// Load and render posts.
-	err = s.LoadPosts()
-	if err != nil {
-		return
+
+	if err := s.ProcessAssets(); err != nil {
+		return err
 	}
-	err = s.RenderPosts()
-	if err != nil {
-		return
+	if err := s.RenderPosts(); err != nil {
+		return err
 	}
-	// Render pages.
-	err = s.RenderPages()
-	if err != nil {
-		return
+	if err := s.RenderPages(); err != nil {
+		return err
 	}
-	// Render tags index.
 	if s.Config.TagIndex != nil {
-		err = s.RenderTagsIndex()
-		if err != nil {
-			return
+		if err := s.RenderTagsIndex(); err != nil {
+			return err
 		}
 	}
 	return nil
