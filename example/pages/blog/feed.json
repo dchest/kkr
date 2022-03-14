@@ -14,8 +14,9 @@ layout: none
       "id": "{{$.Site.URL}}/{{.Meta.id}}",
       "title": "{{ .Meta.title | json }}",
       "url": "{{$.Site.URL}}{{.Meta.url}}",
-      {{with .Meta.summary}}"summary": "{{. | json}}",{{end}}
+      {{with $tags := .Meta.tags}}"tags": [{{range $i, $tag := $tags}}"{{ $tag | json}}"{{if ne $i (lastindex $tags)}},{{end}}{{end}}],{{end}}
       "date_published": "{{.Date.Format "2006-01-02T15:04:05Z07:00" }}",
+      {{with .Meta.summary}}"summary": "{{. | json}}",{{end}}
       "content_html": "{{ .Content | abspaths | json }}"
     }{{end}}
   ]
