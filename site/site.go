@@ -137,6 +137,7 @@ type Site struct {
 	cleanBeforeBuilding bool
 	fileWriter          *filewriter.FileWriter
 	devMode             bool
+	layoutFuncs         layouts.FuncMap
 }
 
 func Open(dir string) (s *Site, err error) {
@@ -497,6 +498,9 @@ func (s *Site) runBuild() error {
 	if err := s.LoadIncludes(); err != nil {
 		return err
 	}
+	if err := s.LoadLayoutFuncs(); err != nil {
+		return err
+	}
 	if err := s.LoadLayouts(); err != nil {
 		return err
 	}
@@ -620,8 +624,11 @@ func (s *Site) LayoutData() interface{} {
 }
 
 func (s *Site) LayoutFuncs() layouts.FuncMap {
-	// TODO cache this map.
-	return layouts.FuncMap{
+	return s.layoutFuncs
+}
+
+func (s *Site) LoadLayoutFuncs() error {
+	s.layoutFuncs = layouts.FuncMap{
 		// `xml` function escapes XML.
 		"xml": func(in string) (string, error) {
 			var buf bytes.Buffer
@@ -698,6 +705,7 @@ func (s *Site) LayoutFuncs() layouts.FuncMap {
 			return 0, fmt.Errorf("lastindex of type %s", item.Type())
 		},
 	}
+	return nil
 }
 
 func (s *Site) Serve(addr string) error {
