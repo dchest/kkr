@@ -268,7 +268,7 @@ func NewPool(fn func(interface{}) error) *Pool {
 	p := &Pool{
 		jobs: make(chan interface{}, parallelism),
 	}
-	// Lauch workers.
+	// Launch workers.
 	for i := 0; i < parallelism; i++ {
 		go func() {
 			for j := range p.jobs {
