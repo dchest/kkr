@@ -27,7 +27,7 @@ layout: none
 	<summary type="text">{{. | xml}}</summary>
 	{{end}}
 	{{- range .Meta.tags}}
-	<category term="{{.}}"/>
+	<category term="{{. | xml}}"/>
 	{{- end}}
 	<content type="html" xml:base="{{$.Site.URL}}/">{{ .Content | abspaths | xml }}</content>
     </entry>
