@@ -99,6 +99,18 @@ func isBufferName(s string) bool {
 	return len(s) > 0 && s[0] == bufSigil
 }
 
+func copyFile(w io.Writer, filename string) error {
+	f, err := os.Open(filename)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	if _, err := io.Copy(w, f); err != nil {
+		return err
+	}
+	return nil
+}
+
 func (c *Collection) ProcessAsset(fw *filewriter.FileWriter, a *Asset, filters *filters.Collection, outdir string) error {
 	if a.processed {
 		return nil
@@ -121,12 +133,7 @@ func (c *Collection) ProcessAsset(fw *filewriter.FileWriter, a *Asset, filters *
 			}
 			buf.WriteString(refAsset.Result)
 		} else {
-			f, err := os.Open(name)
-			if err != nil {
-				return err
-			}
-			defer f.Close()
-			if _, err := io.Copy(&buf, f); err != nil {
+			if err := copyFile(&buf, name); err != nil {
 				return err
 			}
 		}
