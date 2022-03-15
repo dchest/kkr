@@ -357,24 +357,26 @@ func (s *Site) RenderPost(p *Post) error {
 
 func (s *Site) RenderPosts() error {
 	log.Printf("* Rendering posts.")
-	pool := utils.NewPool(func(p interface{}) error {
-		return s.RenderPost(p.(*Post))
-	})
-	for _, p := range s.Config.Posts {
-		pool.Add(p)
+	pool := utils.NewPool()
+	for _, v := range s.Config.Posts {
+		post := v
+		if !pool.Add(func() error { return s.RenderPost(post) }) {
+			break
+		}
 	}
-	return pool.Err()
+	return pool.Wait()
 }
 
 func (s *Site) RenderTagsIndex() error {
 	log.Printf("* Rendering tags index")
-	pool := utils.NewPool(func(tag interface{}) error {
-		return s.RenderTag(tag.(string))
-	})
-	for _, p := range s.Config.TagList {
-		pool.Add(p)
+	pool := utils.NewPool()
+	for _, v := range s.Config.TagList {
+		tag := v
+		if !pool.Add(func() error { return s.RenderTag(tag) }) {
+			break
+		}
 	}
-	return pool.Err()
+	return pool.Wait()
 }
 
 func (s *Site) RenderTag(tag string) error {
@@ -427,9 +429,7 @@ func (s *Site) RenderPage(pagesDir, relname string) error {
 func (s *Site) RenderPages() error {
 	log.Printf("* Rendering pages")
 	inDir := filepath.Join(s.BaseDir, PagesDirName)
-	pool := utils.NewPool(func(relname interface{}) error {
-		return s.RenderPage(inDir, relname.(string))
-	})
+	pool := utils.NewPool()
 	err := filepath.Walk(inDir, func(path string, fi os.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -444,14 +444,15 @@ func (s *Site) RenderPages() error {
 		if s.isIgnoredFile(filepath.Base(relname)) {
 			return nil // skip ignored files
 		}
-		pool.Add(relname)
+		if !pool.Add(func() error { return s.RenderPage(inDir, relname) }) {
+			return filepath.SkipDir
+		}
 		return nil
 	})
-	perr := pool.Err()
-	if err != nil {
-		return err
+	if perr := pool.Wait(); perr != nil {
+		return perr
 	}
-	return perr
+	return err
 }
 
 func (s *Site) CopyFile(filename string) error {
@@ -576,12 +577,12 @@ func (s *Site) generateSearchIndex() error {
 		if err != nil {
 			return err
 		}
+		defer f.Close()
 		url := utils.CleanPermalink(filepath.ToSlash(path[len(dir):]))
 		if s.isExcludedFromSearch(url) {
 			return nil
 		}
 		indexed, err := index.AddHTML(url, f)
-		f.Close()
 		if err != nil {
 			return err
 		}
@@ -735,7 +736,7 @@ func (s *Site) StartWatching() (err error) {
 					log.Printf("! build error: %s", err)
 				}
 			case err := <-watcher.Error:
-				log.Println("! watcher error:", err)
+				log.Printf("! watcher error: %s", err)
 			}
 		}
 	}()

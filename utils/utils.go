@@ -255,25 +255,24 @@ func OpenURL(addr string) error {
 
 // Pool is a worker pool for parallel job processing.
 type Pool struct {
-	sync.Mutex
+	sync.RWMutex
 	wg   sync.WaitGroup
-	jobs chan interface{}
+	jobs chan func() error
 	err  error
 }
 
 // NewPool creates a new pool which calls fn for each
 // added item and stores the first returned error.
-func NewPool(fn func(interface{}) error) *Pool {
+func NewPool() *Pool {
 	parallelism := runtime.NumCPU()
 	p := &Pool{
-		jobs: make(chan interface{}, parallelism),
+		jobs: make(chan func() error, parallelism),
 	}
 	// Launch workers.
 	for i := 0; i < parallelism; i++ {
 		go func() {
 			for j := range p.jobs {
-				err := fn(j)
-				if err != nil {
+				if err := j(); err != nil {
 					p.Lock()
 					if p.err == nil {
 						p.err = err
@@ -292,12 +291,19 @@ func NewPool(fn func(interface{}) error) *Pool {
 //
 // After finishing adding items, Err must be called on the pool
 // to wait for unfinished jobs to complete and get the first error.
-func (p *Pool) Add(job interface{}) {
+func (p *Pool) Add(job func() error) bool {
+	p.RLock()
+	hasErr := p.err != nil
+	p.RUnlock()
+	if hasErr {
+		return false
+	}
 	p.wg.Add(1)
 	p.jobs <- job
+	return true
 }
 
-func (p *Pool) Err() error {
+func (p *Pool) Wait() error {
 	p.wg.Wait()
 	return p.err
 }
