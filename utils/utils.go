@@ -264,7 +264,7 @@ type Pool struct {
 // NewPool creates a new pool which calls fn for each
 // added item and stores the first returned error.
 func NewPool() *Pool {
-	parallelism := runtime.NumCPU()
+	parallelism := runtime.GOMAXPROCS(0)
 	p := &Pool{
 		jobs: make(chan func() error, parallelism),
 	}
@@ -287,9 +287,13 @@ func NewPool() *Pool {
 }
 
 // Add adds a new job to pool. Function passed to
-// NewPool will be called for each job in a worker goroutine.
+// Add will be called for each job in a worker goroutine.
 //
-// After finishing adding items, Err must be called on the pool
+// If Add returns false, which happens if one of the
+// previously added jobs returned an error, the job
+// will not be added to the pool.
+//
+// After finishing adding items, Wait must be called on the pool
 // to wait for unfinished jobs to complete and get the first error.
 func (p *Pool) Add(job func() error) bool {
 	p.RLock()
@@ -303,7 +307,13 @@ func (p *Pool) Add(job func() error) bool {
 	return true
 }
 
+// Wait for jobs to complete and return the first error or nil
+// if there were no errors.
+//
+// After calling Wait, the pool can be reused.
 func (p *Pool) Wait() error {
 	p.wg.Wait()
-	return p.err
+	err := p.err
+	p.err = nil
+	return err
 }
