@@ -27,10 +27,20 @@ type Asset struct {
 	Separator string      `yaml:"separator,omitempty"`
 	OutName   string      `yaml:"outname"`
 
-	// Result is output filename, if OutName is "$", the content of output.
-	Result string
+	// RenderedName is the output filename of the asset,
+	// or an empty string if OutName is "$".
+	RenderedName string
+
+	// Result is the processed content of asset.
+	Result []byte
 
 	processed bool
+}
+
+// IsBuffered returns true if the output of asset
+// is a buffer (OutName starts with $).
+func (a *Asset) IsBuffered() bool {
+	return isBufferName(a.OutName)
 }
 
 type Collection struct {
@@ -72,9 +82,21 @@ func Load(filename string) (c *Collection, err error) {
 }
 
 // Process processes all assets in the collection.
-func (c *Collection) Process(fw *filewriter.FileWriter, outdir string) error {
+func (c *Collection) Process() error {
 	for _, a := range c.assets {
-		if err := c.ProcessAsset(fw, a, c.filters, outdir); err != nil {
+		if err := c.ProcessAsset(a, c.filters); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (c *Collection) Render(fw *filewriter.FileWriter, outdir string) error {
+	for _, a := range c.assets {
+		if a.IsBuffered() {
+			continue
+		}
+		if err := c.RenderAsset(a, fw, outdir); err != nil {
 			return err
 		}
 	}
@@ -83,10 +105,11 @@ func (c *Collection) Process(fw *filewriter.FileWriter, outdir string) error {
 
 func (c *Collection) SetStringAsset(name, data string) {
 	c.assets[name] = &Asset{
-		Name:      name,
-		OutName:   "$",
-		Result:    data,
-		processed: true,
+		Name:         name,
+		OutName:      "$",
+		RenderedName: "",
+		Result:       []byte(data),
+		processed:    true,
 	}
 }
 
@@ -111,7 +134,7 @@ func readFile(w io.Writer, filename string) error {
 	return nil
 }
 
-func (c *Collection) ProcessAsset(fw *filewriter.FileWriter, a *Asset, filters *filters.Collection, outdir string) error {
+func (c *Collection) ProcessAsset(a *Asset, filters *filters.Collection) error {
 	if a.processed {
 		return nil
 	}
@@ -127,11 +150,11 @@ func (c *Collection) ProcessAsset(fw *filewriter.FileWriter, a *Asset, filters *
 			if !refAsset.processed {
 				// Process it.
 				// BUG Here will hang if we can have a circular reference.
-				if err := c.ProcessAsset(fw, refAsset, filters, outdir); err != nil {
+				if err := c.ProcessAsset(refAsset, filters); err != nil {
 					return err
 				}
 			}
-			buf.WriteString(refAsset.Result)
+			buf.Write(refAsset.Result)
 		} else {
 			if err := readFile(&buf, name); err != nil {
 				return err
@@ -146,27 +169,24 @@ func (c *Collection) ProcessAsset(fw *filewriter.FileWriter, a *Asset, filters *
 	if err != nil {
 		return err
 	}
-	if a.OutName == string(bufSigil) {
-		// Result is the output.
-		// Don't write to file, just remember the result.
-		a.Result = string(b)
-		a.processed = true
-		log.Printf("A %c%s", bufSigil, a.Name)
-		return nil
-	}
-	// Result is filename.
-	// Make file name from hash.
-	a.Result = utils.TemplatedHash(a.OutName, b)
-	// Check that the result is not empty.
-	if a.Result == "" {
-		return fmt.Errorf("templated hash for asset %s returned empty result", a.Name)
-	}
-	log.Printf("A %s", a.Result)
-	// Write to file.
-	outfile := filepath.Join(outdir, filepath.FromSlash(a.Result))
-	if err := fw.WriteFile(outfile, b); err != nil {
-		return err
+	a.Result = b
+	if a.IsBuffered() {
+		a.RenderedName = ""
+	} else {
+		a.RenderedName = utils.TemplatedHash(a.OutName, b)
+		if a.RenderedName == "" {
+			return fmt.Errorf("templated hash for asset %s returned empty result", a.Name)
+		}
 	}
 	a.processed = true
 	return nil
+}
+
+func (c Collection) RenderAsset(a *Asset, fw *filewriter.FileWriter, outdir string) error {
+	if a.IsBuffered() {
+		return nil // this asset shouldn't be rendered into a file
+	}
+	log.Printf("A %s", a.RenderedName)
+	outfile := filepath.Join(outdir, filepath.FromSlash(a.RenderedName))
+	return fw.WriteFile(outfile, a.Result)
 }

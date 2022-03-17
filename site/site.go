@@ -470,7 +470,12 @@ func (s *Site) CopyFile(filename string) error {
 
 func (s *Site) ProcessAssets() error {
 	log.Printf("* Processing assets.")
-	return s.Assets.Process(s.fileWriter, filepath.Join(s.BaseDir, OutDirName))
+	return s.Assets.Process()
+}
+
+func (s *Site) RenderAssets() error {
+	log.Printf("* Rendering assets.")
+	return s.Assets.Render(s.fileWriter, filepath.Join(s.BaseDir, OutDirName))
 }
 
 func (s *Site) runBuild() error {
@@ -508,8 +513,10 @@ func (s *Site) runBuild() error {
 	if err := s.LoadPosts(); err != nil {
 		return err
 	}
-
 	if err := s.ProcessAssets(); err != nil {
+		return err
+	}
+	if err := s.RenderAssets(); err != nil {
 		return err
 	}
 	if err := s.RenderPosts(); err != nil {
@@ -657,7 +664,10 @@ func (s *Site) LoadLayoutFuncs() error {
 			if a == nil {
 				return "", fmt.Errorf("asset %q not found", name)
 			}
-			return a.Result, nil
+			if a.IsBuffered() {
+				return string(a.Result), nil
+			}
+			return string(a.RenderedName), nil
 		},
 		// `include` function returns text from include file.
 		"include": func(name string) (string, error) {
