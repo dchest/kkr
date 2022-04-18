@@ -7,6 +7,7 @@ import (
 	"math"
 	"sort"
 	"strings"
+	"unicode/utf16"
 
 	"github.com/dchest/stemmer/porter2"
 
@@ -129,7 +130,17 @@ func (n *Index) addString(doc *Document, text string, wordWeight float64) {
 		if len(w) < 1 || isStopWord(w) {
 			continue
 		}
-		wordcnt[stem(w)] += wordWeight
+		w = stem(w)
+		if len(w) > 20 {
+			// Limit word length after stemming to 20 "characters"".
+			// JS interface uses UTF-16 encoding to cut, so we do this
+			// here in UTF-16 too.
+			wu := utf16.Encode([]rune(w))
+			if len(wu) > 20 {
+				w = string(utf16.Decode(wu[:20]))
+			}
+		}
+		wordcnt[w] += wordWeight
 	}
 	// Scale each word weight and add it
 	for w, c := range wordcnt {

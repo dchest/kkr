@@ -37,7 +37,9 @@
 
     function search(searchIndex, query) {
         const queryWords = (query.match(/[\p{L}\d'’]{1,}/gu) || []).map(normalizeWord);
-        const words = queryWords.filter(w => !isStopWord(w)).map(stem);
+        const words = queryWords.filter(w => !isStopWord(w))
+            .map(stem)
+            .map(w => w.length > 20 ? w.substring(0, 20) : w);
 
         const found = {}; // maps words to documents and frequencies
         words.forEach(w => {
