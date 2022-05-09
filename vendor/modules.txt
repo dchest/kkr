@@ -14,9 +14,9 @@ github.com/dchest/jsmin
 ## explicit
 github.com/dchest/stemmer
 github.com/dchest/stemmer/porter2
-# github.com/russross/blackfriday v1.6.0
+# github.com/russross/blackfriday/v2 v2.1.0
 ## explicit
-github.com/russross/blackfriday
+github.com/russross/blackfriday/v2
 # golang.org/x/net v0.0.0-20220225172249-27dd8689420f
 ## explicit
 golang.org/x/net/html

@@ -3,7 +3,7 @@ package markup
 import (
 	"fmt"
 
-	"github.com/russross/blackfriday"
+	"github.com/russross/blackfriday/v2"
 )
 
 type Options struct {
@@ -26,30 +26,14 @@ func Process(markupName string, content []byte) ([]byte, error) {
 }
 
 func processMarkdown(content []byte) ([]byte, error) {
-	// Copy of commonHtmlFlags
-	htmlFlags := 0 |
-		blackfriday.HTML_USE_XHTML |
-		blackfriday.HTML_USE_SMARTYPANTS |
-		blackfriday.HTML_SMARTYPANTS_FRACTIONS |
-		blackfriday.HTML_SMARTYPANTS_DASHES |
-		blackfriday.HTML_SMARTYPANTS_LATEX_DASHES
+	htmlFlags := blackfriday.CommonHTMLFlags
 
 	if options.MarkdownAngledQuotes {
-		htmlFlags |= blackfriday.HTML_SMARTYPANTS_ANGLED_QUOTES
+		htmlFlags |= blackfriday.SmartypantsAngledQuotes
 	}
 
-	// Copy of commonExtension
-	extensions := 0 |
-		blackfriday.EXTENSION_NO_INTRA_EMPHASIS |
-		blackfriday.EXTENSION_TABLES |
-		blackfriday.EXTENSION_FENCED_CODE |
-		blackfriday.EXTENSION_AUTOLINK |
-		blackfriday.EXTENSION_STRIKETHROUGH |
-		blackfriday.EXTENSION_SPACE_HEADERS |
-		blackfriday.EXTENSION_HEADER_IDS |
-		blackfriday.EXTENSION_BACKSLASH_LINE_BREAK |
-		blackfriday.EXTENSION_DEFINITION_LISTS
+	extensions := blackfriday.CommonExtensions | blackfriday.LaxHTMLBlocks
 
-	renderer := blackfriday.HtmlRenderer(htmlFlags, "", "")
-	return blackfriday.MarkdownOptions(content, renderer, blackfriday.Options{Extensions: extensions}), nil
+	renderer := blackfriday.NewHTMLRenderer(blackfriday.HTMLRendererParameters{Flags: htmlFlags})
+	return blackfriday.Run(content, blackfriday.WithExtensions(extensions), blackfriday.WithRenderer(renderer)), nil
 }
