@@ -14,7 +14,7 @@ import (
 	"strings"
 	"sync"
 
-	"gopkg.in/yaml.v1"
+	"gopkg.in/yaml.v3"
 )
 
 const metaSeparator = "---"

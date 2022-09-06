@@ -11,5 +11,5 @@ require (
 	github.com/russross/blackfriday/v2 v2.1.0
 	golang.org/x/net v0.0.0-20220225172249-27dd8689420f
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
-	gopkg.in/yaml.v1 v1.0.0-20140924161607-9f9df34309c0
+	gopkg.in/yaml.v3 v3.0.1
 )

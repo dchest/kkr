@@ -22,7 +22,7 @@ import (
 	"sync"
 	"time"
 
-	"gopkg.in/yaml.v1"
+	"gopkg.in/yaml.v3"
 )
 
 // UnmarshallYAMLFile reads YAML file and unmarshalls it into data.
