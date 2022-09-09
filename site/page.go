@@ -6,6 +6,7 @@ package site
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -13,6 +14,7 @@ import (
 
 	"github.com/dchest/kkr/markup"
 	"github.com/dchest/kkr/metafile"
+	"github.com/dchest/kkr/sitemap"
 	"github.com/dchest/kkr/utils"
 )
 
@@ -60,6 +62,34 @@ func (p *Page) Meta() map[string]interface{} { return p.meta }
 func (p *Page) Content() string              { return p.content }
 func (p *Page) FileInfo() os.FileInfo        { return p.fi }
 func (p *Page) URL() string                  { return p.url }
+
+func (p *Page) InSitemap() bool {
+	if value, ok := p.meta["sitemap"].(bool); ok {
+		return value
+	}
+	return true
+}
+
+func (p *Page) SitemapEntry() sitemap.Entry {
+	changefreq := ""
+	if mchangefreq, ok := p.meta["changefreq"]; ok {
+		changefreq = fmt.Sprintf("%v", mchangefreq)
+	}
+	priority := ""
+	if mpriority, ok := p.meta["priority"]; ok {
+		priority = fmt.Sprintf("%v", mpriority)
+	}
+	lastmod := ""
+	if p.fi != nil {
+		lastmod = p.fi.ModTime().Format("2006-01-02")
+	}
+	return sitemap.Entry{
+		Loc:        p.url,
+		Lastmod:    lastmod,
+		Changefreq: changefreq,
+		Priority:   priority,
+	}
+}
 
 var NotPageError = errors.New("not a page or post")
 

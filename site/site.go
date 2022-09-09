@@ -26,6 +26,7 @@ import (
 	"github.com/dchest/kkr/filewriter"
 	"github.com/dchest/kkr/search"
 	"github.com/dchest/kkr/search/indexer"
+	"github.com/dchest/kkr/sitemap"
 
 	"github.com/dchest/kkr/assets"
 	"github.com/dchest/kkr/filters"
@@ -82,6 +83,7 @@ type Config struct {
 	Markup     *markup.Options            `yaml:"markup"`
 	Compress   *filewriter.CompressConfig `yaml:"compress"`
 	TagIndex   *TagIndexConfig            `yaml:"tagindex"`
+	Sitemap    string                     `yaml:"sitemap"`
 
 	// Generated.
 	Date    time.Time
@@ -138,6 +140,7 @@ type Site struct {
 	fileWriter          *filewriter.FileWriter
 	devMode             bool
 	layoutFuncs         layouts.FuncMap
+	sitemap             *sitemap.Sitemap
 }
 
 func Open(dir string) (s *Site, err error) {
@@ -185,6 +188,9 @@ func (s *Site) LoadConfig() error {
 		return err
 	}
 	s.Config = conf
+	if conf.Sitemap != "" {
+		s.sitemap = sitemap.New()
+	}
 	return nil
 }
 
@@ -351,6 +357,14 @@ func (s *Site) RenderPost(p *Post) error {
 	if err != nil {
 		return err
 	}
+	if s.sitemap != nil {
+		// Add to sitemap.
+		if p.InSitemap() {
+			if err := s.sitemap.Add(p.SitemapEntry()); err != nil {
+				return err
+			}
+		}
+	}
 	// Write to file.
 	return s.fileWriter.WriteFile(filepath.Join(s.BaseDir, OutDirName, p.Filename), b)
 }
@@ -383,7 +397,7 @@ func (s *Site) RenderTag(tag string) error {
 	// Render tag index.
 	url, err := s.Config.TagURL(tag)
 	if err != nil {
-		return fmt.Errorf("Cannot generate tag index %q: %w", tag, err)
+		return fmt.Errorf("cannot generate tag index %q: %w", tag, err)
 	}
 	p := NewTagIndex(tag, url)
 	data, err := s.Layouts.RenderPage(p, DefaultTagIndexLayout)
@@ -395,6 +409,14 @@ func (s *Site) RenderTag(tag string) error {
 	b, err := s.PageFilters.ApplyFilter(filepath.Ext(p.Filename), []byte(data))
 	if err != nil {
 		return err
+	}
+	if s.sitemap != nil {
+		// Add to sitemap.
+		if p.InSitemap() {
+			if err := s.sitemap.Add(p.SitemapEntry()); err != nil {
+				return err
+			}
+		}
 	}
 	// Write to file.
 	return s.fileWriter.WriteFile(filepath.Join(s.BaseDir, OutDirName, p.Filename), b)
@@ -417,10 +439,24 @@ func (s *Site) RenderPage(pagesDir, relname string) error {
 		return err
 	}
 	log.Printf("P > %s\n", filepath.Join(OutDirName, p.Filename))
+	fileExt := filepath.Ext(p.Filename)
 	// Apply filter.
-	b, err := s.PageFilters.ApplyFilter(filepath.Ext(p.Filename), []byte(data))
+	b, err := s.PageFilters.ApplyFilter(fileExt, []byte(data))
 	if err != nil {
 		return err
+	}
+	if s.sitemap != nil {
+		switch fileExt {
+		case ".htm", ".html", ".xml":
+			// Add to sitemap.
+			if p.InSitemap() {
+				if err := s.sitemap.Add(p.SitemapEntry()); err != nil {
+					return err
+				}
+			}
+		default:
+			// nothing
+		}
 	}
 	// Write to file.
 	return s.fileWriter.WriteFile(filepath.Join(s.BaseDir, OutDirName, p.Filename), b)
@@ -465,6 +501,18 @@ func (s *Site) CopyFile(filename string) error {
 		return err
 	}
 	log.Printf("C > %s\n", filepath.Join(OutDirName, filename))
+	return nil
+}
+
+func (s *Site) RenderSitemap() error {
+	if s.sitemap != nil {
+		log.Printf("* Rendering sitemap.")
+		var buf bytes.Buffer
+		if err := s.sitemap.Render(&buf, s.Config.URL); err != nil {
+			return err
+		}
+		return s.fileWriter.WriteFile(filepath.Join(OutDirName, s.Config.Sitemap), buf.Bytes())
+	}
 	return nil
 }
 
@@ -529,6 +577,9 @@ func (s *Site) runBuild() error {
 		if err := s.RenderTagsIndex(); err != nil {
 			return err
 		}
+	}
+	if err := s.RenderSitemap(); err != nil {
+		return err
 	}
 	return nil
 }
