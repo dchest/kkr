@@ -90,6 +90,6 @@ var sitemapTemplate = template.Must(template.New("").Funcs(sitemapFuncs).Parse(
   <priority>{{. | xml}}</priority>
   {{- end}}
  </url>
+ {{- end}}
 </urlset>
-{{- end}}
 `))
