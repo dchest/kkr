@@ -14,7 +14,9 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
+	"path"
 	"path/filepath"
 	"reflect"
 	"sort"
@@ -71,12 +73,19 @@ type TagIndexConfig struct {
 	Layout    string `yaml:"layout"`
 }
 
+type StaticConfig struct {
+	Path   string `yaml:"path"`
+	URL    string `yaml:"url"`
+	Assets bool   `yaml:"assets"`
+}
+
 type Config struct {
 	// Loadable from YAML.
 	Name       string                     `yaml:"name"`
 	Author     string                     `yaml:"author"`
 	Permalink  string                     `yaml:"permalink"`
 	URL        string                     `yaml:"url"`
+	Static     *StaticConfig              `yaml:"static"`
 	Filters    map[string]interface{}     `yaml:"filters"`
 	Properties map[string]interface{}     `yaml:"properties"`
 	Search     *SearchConfig              `yaml:"search"`
@@ -523,7 +532,11 @@ func (s *Site) ProcessAssets() error {
 
 func (s *Site) RenderAssets() error {
 	log.Printf("* Rendering assets.")
-	return s.Assets.Render(s.fileWriter, filepath.Join(s.BaseDir, OutDirName))
+	outDir := filepath.Join(s.BaseDir, OutDirName)
+	if s.Config.Static != nil && s.Config.Static.Assets {
+		outDir = filepath.Join(outDir, s.Config.Static.Path)
+	}
+	return s.Assets.Render(s.fileWriter, outDir)
 }
 
 func (s *Site) runBuild() error {
@@ -709,7 +722,7 @@ func (s *Site) LoadLayoutFuncs() error {
 			// slice out quotes and new line
 			return out[1 : len(out)-2], nil
 		},
-		// `asset` function returns asset URL by its name.
+		// `asset` function returns asset URL or content by its name.
 		"asset": func(name string) (string, error) {
 			a := s.Assets.Get(name)
 			if a == nil {
@@ -718,7 +731,23 @@ func (s *Site) LoadLayoutFuncs() error {
 			if a.IsBuffered() {
 				return string(a.Result), nil
 			}
-			return string(a.RenderedName), nil
+			resultURL := a.RenderedName
+			if s.Config.Static != nil && s.Config.Static.Assets {
+				joined, err := url.JoinPath(s.Config.Static.URL, resultURL)
+				if err != nil {
+					return "", err
+				}
+				resultURL = joined
+			}
+			return resultURL, nil
+		},
+		// `static` function joins URL from site config's static.url with the given URL.
+		"static": func(staticURL string) (string, error) {
+			if s.Config.Static != nil {
+				return url.JoinPath(s.Config.Static.URL, staticURL)
+			} else {
+				return path.Join("/", staticURL), nil
+			}
 		},
 		// `include` function returns text from include file.
 		"include": func(name string) (string, error) {
