@@ -76,6 +76,7 @@ type TagIndexConfig struct {
 type StaticConfig struct {
 	Path   string `yaml:"path"`
 	URL    string `yaml:"url"`
+	DevURL string `yaml:"dev_url"`
 	Assets bool   `yaml:"assets"`
 }
 
@@ -199,6 +200,12 @@ func (s *Site) LoadConfig() error {
 	s.Config = conf
 	if conf.Sitemap != "" {
 		s.sitemap = sitemap.New()
+	}
+	if s.devMode {
+		// In dev mode, override static url with dev_url if it exists.
+		if s.Config.Static != nil && s.Config.Static.DevURL != "" {
+			s.Config.Static.URL = s.Config.Static.DevURL
+		}
 	}
 	return nil
 }
