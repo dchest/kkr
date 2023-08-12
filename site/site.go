@@ -48,6 +48,7 @@ const (
 	LayoutsDirName  = "layouts"
 	PagesDirName    = "pages"
 	PostsDirName    = "posts"
+	DraftsDirName   = "drafts"
 	OutDirName      = "out"
 
 	DefaultPermalink = "blog/:year/:month/:day/:name/"

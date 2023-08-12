@@ -11,6 +11,7 @@ import (
 	"os"
 	"runtime/pprof"
 
+	"github.com/dchest/kkr/importer"
 	"github.com/dchest/kkr/site"
 	"github.com/dchest/kkr/utils"
 )
@@ -35,6 +36,8 @@ Commands:
   serve  - start a web server
   dev    - same as "serve -watch -browser", but disables compression
   clean  - clean caches and remove output directory
+  import [type] [infile] - import from other blog engines (overwrites existing files)
+		 Supported types: wordpress
 
 Options:
 `)
@@ -125,6 +128,16 @@ func main() {
 		err = currentSite.Clean()
 		if err != nil {
 			log.Printf("! clean error: %s", err)
+		}
+	case "import":
+		if len(flag.Args()) < 2 {
+			log.Printf("! import: missing arguments")
+			flag.Usage()
+			return
+		}
+		err = importer.Import(flag.Arg(0), dir, flag.Arg(1))
+		if err != nil {
+			log.Printf("! import error: %s", err)
 		}
 	default:
 		log.Printf("! unknown command %s", command)
