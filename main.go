@@ -26,6 +26,8 @@ var (
 	fCPUProfile = flag.String("cpuprofile", "", "(debug) write CPU profile to file")
 	fNoCache    = flag.Bool("nocache", false, "disables caching when watching")
 	fBrowser    = flag.Bool("browser", false, "open local site in browser after starting the web server")
+	fTitle      = flag.String("title", "", "post title (for newpost)")
+	fTags       = flag.String("tags", "", "comma-separatated post tags (for newpost)")
 )
 
 var Usage = func() {
@@ -38,6 +40,7 @@ Commands:
   clean  - clean caches and remove output directory
   import [type] [infile] - import from other blog engines (overwrites existing files)
 		 Supported types: wordpress
+  newpost -title "Post title" [-tags "tag1,tag2"] - create new post file
 
 Options:
 `)
@@ -138,6 +141,20 @@ func main() {
 		err = importer.Import(flag.Arg(0), dir, flag.Arg(1))
 		if err != nil {
 			log.Printf("! import error: %s", err)
+		}
+	case "newpost":
+		if *fTitle == "" {
+			log.Printf("! newpost: missing title")
+			flag.Usage()
+			return
+		}
+		filename, err := currentSite.MakePost(*fTitle, *fTags)
+		if err != nil {
+			log.Printf("! newpost error: %s", err)
+		}
+		log.Printf("%s", filename)
+		if err := utils.OpenEditor(filename); err != nil {
+			log.Printf("! cannot open editor: %s", err)
 		}
 	default:
 		log.Printf("! unknown command %s", command)

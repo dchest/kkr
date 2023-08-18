@@ -317,3 +317,37 @@ func (p *Pool) Wait() error {
 	p.err = nil
 	return err
 }
+
+var slugRx = regexp.MustCompile(`[^a-z0-9]+`)
+
+// ToSlug creates a slug from a title,
+// for example "Hello, world!" becomes "hello-world".
+// Only supports Latin characters, others are replaced with dashes.
+func ToSlug(title string) string {
+	return strings.Trim(slugRx.ReplaceAllString(strings.ToLower(title), "-"), "-")
+}
+
+// SplitTags splits a comma-separated list of tags into a slice.
+func SplitTags(tags string) []string {
+	t := strings.Split(tags, ",")
+	out := make([]string, 0, len(t))
+	for _, v := range t {
+		v = strings.TrimSpace(v)
+		if v != "" {
+			out = append(out, v)
+		}
+	}
+	return out
+}
+
+// OpenEditor launches editor for editing the given file.
+func OpenEditor(filename string) error {
+	switch runtime.GOOS {
+	case "darwin":
+		return exec.Command("open", "-t", filename).Start()
+	case "linux", "freebsd", "openbsd":
+		return exec.Command("xdg-open", filename).Start()
+	default:
+		return fmt.Errorf("don't know how to open editor on %s", runtime.GOOS)
+	}
+}

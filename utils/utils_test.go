@@ -20,3 +20,16 @@ func TestAbsPaths(t *testing.T) {
 		}
 	}
 }
+
+func TestToSlug(t *testing.T) {
+	var tests = []struct{ in, out string }{
+		{"Hello, world!", "hello-world"},
+		{"Hello, свете!", "hello"},
+	}
+	for i, v := range tests {
+		out := ToSlug(v.in)
+		if v.out != out {
+			t.Errorf("%d: expected %q, got %q", i, v.out, out)
+		}
+	}
+}

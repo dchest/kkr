@@ -29,6 +29,7 @@ import (
 	"github.com/dchest/kkr/search"
 	"github.com/dchest/kkr/search/indexer"
 	"github.com/dchest/kkr/sitemap"
+	"gopkg.in/yaml.v3"
 
 	"github.com/dchest/kkr/assets"
 	"github.com/dchest/kkr/filters"
@@ -852,4 +853,52 @@ func (s *Site) StopWatching() {
 
 func (s *Site) SetCleanBeforeBuilding(clean bool) {
 	s.cleanBeforeBuilding = clean
+}
+
+// MakePost creates a new post file with the given title.
+// It returns the filename of the created file.
+func (s *Site) MakePost(title string, tags string) (string, error) {
+	slug := utils.ToSlug(title)
+	if slug == "" {
+		return "", fmt.Errorf("empty slug")
+	}
+	slug = fmt.Sprintf("%s-%s", time.Now().Format("2006-01-02"), slug)
+	postsDir := filepath.Join(s.BaseDir, PostsDirName)
+	counter := 0
+	for {
+		var filename string
+		if counter == 0 {
+			filename = filepath.Join(postsDir, slug+".md")
+		} else {
+			filename = filepath.Join(postsDir, fmt.Sprintf("%s-%d.md", slug, counter))
+		}
+		f, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0666)
+		if err != nil {
+			if os.IsExist(err) {
+				counter++
+				continue
+			}
+			return "", err
+		}
+		defer f.Close()
+		meta := struct {
+			Title string    `yaml:"title"`
+			Date  time.Time `yaml:"date"`
+			Tags  []string  `yaml:"tags,omitempty,flow"`
+		}{
+			Title: title,
+			Date:  time.Now(),
+			Tags:  utils.SplitTags(tags),
+		}
+		b, err := yaml.Marshal(meta)
+		if err != nil {
+			return "", err
+		}
+		b = append([]byte("---\n"), b...)
+		b = append(b, []byte("---\n")...)
+		if _, err := f.Write(b); err != nil {
+			return "", err
+		}
+		return filename, nil
+	}
 }
