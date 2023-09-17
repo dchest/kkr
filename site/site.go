@@ -857,11 +857,16 @@ func (s *Site) SetCleanBeforeBuilding(clean bool) {
 
 // MakePost creates a new post file with the given title.
 // It returns the filename of the created file.
-func (s *Site) MakePost(title string, tags string) (string, error) {
+func (s *Site) MakePost(title string, tags string, link string) (string, error) {
 	slug := utils.ToSlug(title)
 	if slug == "" {
 		return "", fmt.Errorf("empty slug")
 	}
+	u, err := url.Parse(link)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse link")
+	}
+	link = u.String()
 	slug = fmt.Sprintf("%s-%s", time.Now().Format("2006-01-02"), slug)
 	postsDir := filepath.Join(s.BaseDir, PostsDirName)
 	counter := 0
@@ -885,10 +890,12 @@ func (s *Site) MakePost(title string, tags string) (string, error) {
 			Title string    `yaml:"title"`
 			Date  time.Time `yaml:"date"`
 			Tags  []string  `yaml:"tags,omitempty,flow"`
+			Link  string    `yaml:"link,omitempty"`
 		}{
 			Title: title,
 			Date:  time.Now(),
 			Tags:  utils.SplitTags(tags),
+			Link:  link,
 		}
 		b, err := yaml.Marshal(meta)
 		if err != nil {

@@ -28,6 +28,7 @@ var (
 	fBrowser    = flag.Bool("browser", false, "open local site in browser after starting the web server")
 	fTitle      = flag.String("title", "", "post title (for newpost)")
 	fTags       = flag.String("tags", "", "comma-separatated post tags (for newpost)")
+	fLink       = flag.String("link", "", "link meta information (for newpost)")
 )
 
 var Usage = func() {
@@ -148,7 +149,7 @@ func main() {
 			flag.Usage()
 			return
 		}
-		filename, err := currentSite.MakePost(*fTitle, *fTags)
+		filename, err := currentSite.MakePost(*fTitle, *fTags, *fLink)
 		if err != nil {
 			log.Printf("! newpost error: %s", err)
 		}
