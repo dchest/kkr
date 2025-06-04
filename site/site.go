@@ -631,6 +631,9 @@ func (s *Site) isExcludedFromSearch(url string) bool {
 		if ex == url {
 			return true
 		}
+		if strings.HasSuffix(ex, "/") && strings.HasPrefix(url, ex) {
+			return true
+		}
 	}
 	return false
 }
