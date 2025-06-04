@@ -61,9 +61,9 @@ func main() {
 	command = os.Args[1]
 	os.Args = os.Args[1:]
 
-	watch := *fWatch || command == "dev"
-
 	flag.Parse()
+
+	watch := *fWatch || command == "dev"
 
 	if *fCPUProfile != "" {
 		f, err := os.Create(*fCPUProfile)
