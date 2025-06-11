@@ -29,6 +29,7 @@ import (
 	"github.com/dchest/kkr/search"
 	"github.com/dchest/kkr/search/indexer"
 	"github.com/dchest/kkr/sitemap"
+	"github.com/russross/blackfriday/v2"
 	"gopkg.in/yaml.v3"
 
 	"github.com/dchest/kkr/assets"
@@ -810,6 +811,15 @@ func (s *Site) LoadLayoutFuncs() error {
 		"markdown": func(in string) (string, error) {
 			out, err := markup.Process("markdown", []byte(in))
 			return string(out), err
+		},
+		"smartypants": func(in string) (string, error) {
+			flags := blackfriday.CommonHTMLFlags
+			if s.Config.Markup.MarkdownAngledQuotes {
+				flags |= blackfriday.SmartypantsAngledQuotes
+			}
+			var out bytes.Buffer
+			blackfriday.NewSmartypantsRenderer(flags).Process(&out, []byte(in))
+			return out.String(), nil
 		},
 	}
 	return nil
