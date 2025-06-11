@@ -807,6 +807,10 @@ func (s *Site) LoadLayoutFuncs() error {
 			}
 			return 0, fmt.Errorf("lastindex of type %s", item.Type())
 		},
+		"markdown": func(in string) (string, error) {
+			out, err := markup.Process("markdown", []byte(in))
+			return string(out), err
+		},
 	}
 	return nil
 }
