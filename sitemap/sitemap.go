@@ -36,7 +36,10 @@ func (m *Sitemap) Add(entry Entry) error {
 
 func (m *Sitemap) Render(w io.Writer, baseURL string) error {
 	sort.Slice(m.entries, func(i, j int) bool {
-		return len(m.entries[i].Loc) < len(m.entries[j].Loc)
+		// Sort by path length?
+		//return len(m.entries[i].Loc) < len(m.entries[j].Loc)
+		// Sort by Lastmod in descending order
+		return m.entries[i].Lastmod > m.entries[j].Lastmod
 	})
 
 	return sitemapTemplate.Execute(w, struct {
