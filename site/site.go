@@ -99,10 +99,11 @@ type Config struct {
 	Sitemap    string                     `yaml:"sitemap"`
 
 	// Generated.
-	Date    time.Time
-	Posts   Posts            `yaml:"-"`
-	Tags    map[string]Posts `yaml:"-"`
-	TagList []string         `yaml:"-"`
+	Date         time.Time
+	LastPostDate time.Time
+	Posts        Posts            `yaml:"-"`
+	Tags         map[string]Posts `yaml:"-"`
+	TagList      []string         `yaml:"-"`
 }
 
 func (c Config) PostsByTag(tag string) Posts {
@@ -359,6 +360,9 @@ func (s *Site) LoadPosts() (err error) {
 		tagList = append(tagList, tagName)
 	}
 	sort.Strings(tagList)
+	if len(posts) > 0 {
+		s.Config.LastPostDate = posts[0].Date
+	}
 	s.Config.TagList = tagList
 	s.Config.Tags = tags
 	return nil
