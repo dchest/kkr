@@ -35,7 +35,7 @@ func (m *Sitemap) Add(entry Entry) error {
 }
 
 func (m *Sitemap) Render(w io.Writer, baseURL string) error {
-	sort.Slice(m.entries, func(i, j int) bool {
+	sort.SliceStable(m.entries, func(i, j int) bool {
 		// Sort by Lastmod in descending order,
 		// and then by path length in ascending order.
 		if m.entries[j].Lastmod < m.entries[i].Lastmod {
